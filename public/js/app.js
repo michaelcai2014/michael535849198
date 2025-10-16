@@ -94,6 +94,12 @@ function updateUIBasedOnRole() {
     
     const isAdmin = currentUser.role === 'admin' || currentUser.username === 'Michael';
     
+    // 更新导航栏用户名显示
+    const userNameElement = document.getElementById('userName');
+    if (userNameElement) {
+        userNameElement.textContent = currentUser.username;
+    }
+    
     // 显示/隐藏管理员菜单
     const adminMenu = document.getElementById('adminMenu');
     if (adminMenu) {
@@ -692,7 +698,15 @@ async function saveTrackingProject() {
             showToast('项目创建成功', 'success');
             bootstrap.Modal.getInstance(document.getElementById('addTrackingProjectModal')).hide();
             document.getElementById('addTrackingProjectForm').reset();
+            
+            // 发送微信推送通知管理员
+            if (typeof notifyProjectCreated === 'function') {
+                notifyProjectCreated(formData.projectName, formData.details || '新项目创建');
+            }
+            
+            // 刷新项目列表和仪表盘
             loadTrackingProjects();
+            loadDashboard();
         } else {
             showToast(data.message, 'error');
         }

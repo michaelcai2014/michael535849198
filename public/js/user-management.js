@@ -9,7 +9,7 @@ function showAddUserModal() {
 async function saveNewUser() {
     const username = document.getElementById('newUsername').value;
     const password = document.getElementById('newPassword').value;
-    const role = document.getElementById('newUserRole').value;
+    const role = document.getElementById('newUserRole').value || 'employee'; // 默认为员工
     
     if (!username || !password) {
         showToast('请填写完整信息', 'error');
@@ -18,6 +18,11 @@ async function saveNewUser() {
     
     if (password.length < 6) {
         showToast('密码至少6位字符', 'error');
+        return;
+    }
+    
+    if (!role) {
+        showToast('请选择用户角色', 'error');
         return;
     }
     
