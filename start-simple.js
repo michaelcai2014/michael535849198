@@ -352,15 +352,37 @@ app.put('/api/tracking/:id', authenticateToken, (req, res) => {
         projectName: mockProjects[projectIndex].projectName,
         dealDate: new Date(),
         originalTrackingProject: projectId,
+        
+        // 同步客户信息
+        customerIdentity: mockProjects[projectIndex].customerIdentity || '',
+        customerCategory: mockProjects[projectIndex].customerCategory || '',
+        customerBackground: mockProjects[projectIndex].customerBackground || '',
+        customerWechat: mockProjects[projectIndex].customerWechat || '',
+        
+        // 同步项目信息
         channel: mockProjects[projectIndex].channel || '',
         follower: mockProjects[projectIndex].follower,
+        priority: mockProjects[projectIndex].priority || '低',
+        
+        // 项目进度和详情
         progress: mockProjects[projectIndex].details || '',
+        originalDetails: mockProjects[projectIndex].details || '',
+        
+        // 时间节点和付款信息（初始为空）
+        milestones: [],
+        
         status: '进行中',
-        lastUpdated: new Date()
+        lastUpdated: new Date(),
+        createdAt: new Date()
       };
       
       mockDealProjects.push(dealProject);
       console.log('自动创建成交项目:', dealProject.projectName);
+      console.log('同步字段:', {
+        customerIdentity: dealProject.customerIdentity,
+        customerCategory: dealProject.customerCategory,
+        channel: dealProject.channel
+      });
     }
     
     res.json({
@@ -413,8 +435,8 @@ app.post('/api/tracking/:id/follow-up', authenticateToken, (req, res) => {
       content: req.body.content,
       date: now,
       updatedBy: { 
-        username: 'Michael',
-        wechatNickname: 'Michael'
+        username: req.user.username,
+        wechatNickname: req.user.wechatNickname || req.user.username
       },
       timestamp: now.toISOString(),
       formattedDate: now.toLocaleString('zh-CN', {
