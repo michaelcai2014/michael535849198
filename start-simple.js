@@ -145,7 +145,7 @@ app.get('/api/projects', authenticateToken, (req, res) => {
       projects: mockDealProjects.map(project => ({
         ...project,
         _id: project.id,
-        follower: { username: project.follower, wechatNickname: project.follower }
+        follower: project.follower // 保持原始格式，不重新格式化
       }))
     }
   });
