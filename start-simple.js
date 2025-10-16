@@ -23,7 +23,15 @@ app.use((req, res, next) => {
 
 // 模拟数据
 const mockUsers = [
-  { id: 1, username: 'Michael', password: '123456', role: 'admin', wechatNickname: 'Michael' }
+  { 
+    id: 1, 
+    username: 'Michael', 
+    password: '123456', 
+    role: 'admin', 
+    wechatNickname: 'Michael',
+    wechatBound: true, // 管理员默认已绑定微信
+    wechatOpenid: 'admin_wx_001'
+  }
 ];
 
 const mockProjects = [
@@ -233,6 +241,8 @@ app.post('/api/users', authenticateToken, (req, res) => {
     password, // 实际应用中应该加密
     role: role || 'employee',
     wechatNickname: username,
+    wechatBound: false, // 新用户默认未绑定微信
+    wechatOpenid: null,
     createdAt: new Date()
   };
   
@@ -559,8 +569,18 @@ app.post('/api/wechat/notify', authenticateToken, (req, res) => {
   console.log('   类型:', type);
   console.log('   内容:', JSON.stringify(data, null, 2));
   
-  // 实际应用中这里会调用微信API发送模板消息
-  // 现在只是记录日志
+  // 查找管理员Michael的微信信息
+  const adminUser = mockUsers.find(u => u.username === 'Michael');
+  if (adminUser && adminUser.wechatBound) {
+    console.log('📤 推送给管理员Michael:');
+    console.log('   微信昵称:', adminUser.wechatNickname);
+    console.log('   微信OpenID:', adminUser.wechatOpenid);
+    
+    // 实际应用中这里会调用微信API发送模板消息给管理员
+    // 现在只是记录日志
+  } else {
+    console.log('⚠️  管理员Michael未绑定微信，无法推送');
+  }
   
   res.json({
     success: true,
@@ -610,16 +630,29 @@ app.get('/api/wechat/bind', (req, res) => {
 app.get('/api/wechat/bind-status', authenticateToken, (req, res) => {
   const { state } = req.query;
   
-  // 实际应用中这里会检查数据库中的绑定状态
-  // 现在模拟绑定成功
-  const isBound = Math.random() > 0.7; // 30%概率返回已绑定
+  // 模拟绑定状态检查
+  // 实际应用中这里会检查微信授权状态
+  const isBound = Math.random() > 0.8; // 20%概率绑定成功（降低概率便于测试）
+  
+  if (isBound) {
+    // 更新用户绑定状态
+    const username = state ? state.split('_')[1] : req.user.username;
+    const userIndex = mockUsers.findIndex(u => u.username === username);
+    if (userIndex !== -1) {
+      mockUsers[userIndex].wechatBound = true;
+      mockUsers[userIndex].wechatNickname = '微信用户_' + username;
+      mockUsers[userIndex].wechatOpenid = 'wx_' + Date.now();
+    }
+    
+    console.log('微信绑定成功:', username);
+  }
   
   res.json({
     success: true,
     bound: isBound,
     wechatInfo: isBound ? {
-      nickname: req.user.username + '_WeChat',
-      openid: 'mock_openid_' + Date.now()
+      nickname: '微信用户_' + (state ? state.split('_')[1] : req.user.username),
+      openid: 'wx_' + Date.now()
     } : null
   });
 });

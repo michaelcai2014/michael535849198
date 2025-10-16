@@ -205,11 +205,18 @@ async function handleLogin(event) {
             
             showToast('登录成功', 'success');
             
-            // 检查是否需要绑定微信
-            if (typeof checkWechatBinding === 'function') {
-                checkWechatBinding();
+            // 强制要求微信绑定（除了管理员Michael）
+            if (currentUser.username !== 'Michael' && !currentUser.wechatBound) {
+                // 显示微信绑定提示
+                setTimeout(() => {
+                    if (typeof showWechatBindingPrompt === 'function') {
+                        showWechatBindingPrompt();
+                    } else {
+                        showMainInterface();
+                    }
+                }, 1000);
             } else {
-                // 如果没有绑定功能，直接进入主界面
+                // 管理员或已绑定微信，直接进入主界面
                 showMainInterface();
             }
         } else {
