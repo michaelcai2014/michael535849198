@@ -4,6 +4,7 @@ const cors = require('cors');
 const path = require('path');
 const multer = require('multer');
 const fs = require('fs');
+const wechatService = require('./services/wechatService');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -621,8 +622,8 @@ app.use((err, req, res, next) => {
   });
 });
 
-// 微信推送通知API
-app.post('/api/wechat/notify', authenticateToken, (req, res) => {
+// 微信推送通知API（真实推送）
+app.post('/api/wechat/notify', authenticateToken, async (req, res) => {
   const { type, data, project } = req.body;
   
   console.log('\n====================================');
@@ -634,83 +635,79 @@ app.post('/api/wechat/notify', authenticateToken, (req, res) => {
   // 查找管理员Michael的微信信息
   const adminUser = mockUsers.find(u => u.username === 'Michael');
   
-  if (adminUser && adminUser.wechatBound) {
-    console.log('\n👤 推送目标:');
-    console.log('   管理员: Michael');
-    console.log('   微信昵称:', adminUser.wechatNickname);
-    console.log('   OpenID:', adminUser.wechatOpenid);
-    
-    // 构建完整的推送消息
-    console.log('\n📨 推送内容:');
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    
-    if (type === 'project_created') {
-      console.log('【新项目通知】');
-      console.log('');
-      console.log('项目名称:', data.projectName || '未知');
-      console.log('详情内容:', data.details || '暂无');
-      console.log('操作人员:', data.operator || '未知');
-      
-      // 如果有完整项目信息
-      if (project) {
-        console.log('');
-        console.log('--- 详细信息 ---');
-        console.log('客户身份:', project.customerIdentity || '未填写');
-        console.log('客户类别:', project.customerCategory || '未填写');
-        console.log('客户背景:', project.customerBackground || '未填写');
-        console.log('客户微信:', project.customerWechat || '未填写');
-        console.log('渠道来源:', project.channel || '未填写');
-        console.log('跟进人员:', (project.follower && project.follower.username) || '未知');
-        console.log('优先级别:', project.priority || '未设置');
-        console.log('当前状态:', project.status || '未知');
-      }
-      
-      console.log('');
-      console.log('操作时间:', data.time || new Date().toLocaleString('zh-CN'));
-      
-    } else if (type === 'followup_added') {
-      console.log('【跟进记录更新】');
-      console.log('');
-      console.log('项目名称:', data.projectName || '未知');
-      console.log('跟进内容:', data.content || '暂无');
-      console.log('操作人员:', data.operator || '未知');
-      console.log('更新时间:', data.time || new Date().toLocaleString('zh-CN'));
-      
-      // 如果有完整项目信息
-      if (project) {
-        console.log('');
-        console.log('--- 项目信息 ---');
-        console.log('客户身份:', project.customerIdentity || '未填写');
-        console.log('客户类别:', project.customerCategory || '未填写');
-        console.log('渠道来源:', project.channel || '未填写');
-        console.log('跟进人员:', (project.follower && project.follower.username) || '未知');
-        console.log('当前状态:', project.status || '未知');
-      }
-    }
-    
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    console.log('');
-    console.log('💡 提示: 实际环境中会通过微信公众号API发送模板消息');
-    console.log('💡 需要配置: AppID, AppSecret, 模板ID');
-    console.log('====================================\n');
-    
-    // 实际应用中这里会调用微信API发送模板消息
-    // 示例代码（需要真实配置）：
-    // const wechatService = require('./services/wechatService');
-    // await wechatService.sendTemplateMessage(adminUser.wechatOpenid, templateId, templateData);
-    
-  } else {
+  if (!adminUser || !adminUser.wechatBound) {
     console.log('\n⚠️  警告: 管理员Michael未绑定微信');
     console.log('   无法发送推送通知');
     console.log('====================================\n');
+    
+    return res.json({
+      success: false,
+      message: '管理员未绑定微信'
+    });
   }
+  
+  console.log('\n👤 推送目标:');
+  console.log('   管理员: Michael');
+  console.log('   微信昵称:', adminUser.wechatNickname);
+  console.log('   OpenID:', adminUser.wechatOpenid);
+  
+  // 打印推送内容（用于调试）
+  console.log('\n📨 推送内容:');
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  if (type === 'project_created') {
+    console.log('【新项目通知】');
+    console.log('项目名称:', data.projectName || '未知');
+    console.log('操作人员:', data.operator || '未知');
+  } else if (type === 'followup_added') {
+    console.log('【跟进记录更新】');
+    console.log('项目名称:', data.projectName || '未知');
+    console.log('操作人员:', data.operator || '未知');
+  }
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  
+  // 调用真实的微信推送服务
+  let pushResult;
+  try {
+    if (type === 'project_created') {
+      pushResult = await wechatService.sendProjectCreatedNotification(
+        adminUser.wechatOpenid,
+        data
+      );
+    } else if (type === 'followup_added') {
+      pushResult = await wechatService.sendFollowUpNotification(
+        adminUser.wechatOpenid,
+        data
+      );
+    }
+    
+    if (pushResult && pushResult.success) {
+      console.log('✅ 微信推送成功');
+      if (pushResult.msgid) {
+        console.log('   消息ID:', pushResult.msgid);
+      } else if (pushResult.simulated) {
+        console.log('   模式: 模拟推送（未配置真实API）');
+      }
+    } else {
+      console.log('❌ 微信推送失败:', pushResult ? pushResult.message : '未知错误');
+    }
+    
+  } catch (error) {
+    console.error('❌ 推送异常:', error.message);
+    pushResult = {
+      success: false,
+      message: error.message
+    };
+  }
+  
+  console.log('====================================\n');
   
   res.json({
     success: true,
-    message: '推送通知已发送',
+    message: '推送请求已处理',
+    pushResult: pushResult,
     debug: {
       type,
-      recipient: adminUser ? adminUser.username : 'unknown',
+      recipient: adminUser.username,
       timestamp: new Date().toISOString()
     }
   });
@@ -889,6 +886,14 @@ app.post('/api/wechat/config', authenticateToken, (req, res) => {
   console.log('   AppID:', wechatConfig.appId);
   console.log('   启用推送:', wechatConfig.enablePush);
   
+  // 初始化微信API
+  if (wechatConfig.appId && wechatConfig.appSecret) {
+    const initResult = wechatService.initWechatAPI(wechatConfig);
+    if (initResult) {
+      console.log('   微信API已初始化');
+    }
+  }
+  
   res.json({
     success: true,
     message: '配置保存成功',
@@ -897,7 +902,7 @@ app.post('/api/wechat/config', authenticateToken, (req, res) => {
 });
 
 // 测试微信公众号连接
-app.get('/api/wechat/test', authenticateToken, (req, res) => {
+app.get('/api/wechat/test', authenticateToken, async (req, res) => {
   if (req.user.role !== 'admin') {
     return res.status(403).json({
       success: false,
@@ -905,7 +910,6 @@ app.get('/api/wechat/test', authenticateToken, (req, res) => {
     });
   }
   
-  // 模拟连接测试
   console.log('🔌 测试微信公众号连接...');
   console.log('   AppID:', wechatConfig.appId);
   
@@ -916,11 +920,17 @@ app.get('/api/wechat/test', authenticateToken, (req, res) => {
     });
   }
   
-  // 模拟成功
-  res.json({
-    success: true,
-    message: '连接测试成功！（模拟）'
-  });
+  // 尝试真实连接测试
+  try {
+    const testResult = await wechatService.testConnection();
+    res.json(testResult);
+  } catch (error) {
+    res.json({
+      success: false,
+      message: '连接测试失败',
+      error: error.message
+    });
+  }
 });
 
 // 上传公众号二维码
