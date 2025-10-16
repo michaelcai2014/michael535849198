@@ -41,6 +41,11 @@
                             <i class="fas fa-users me-1"></i>用户管理
                         </a>
                     </li>
+                    <li class="nav-item" id="adminMenu3" style="display: none;">
+                        <a class="nav-link" href="#" onclick="showSection('wechatConfig')">
+                            <i class="fab fa-weixin me-1"></i>公众号配置
+                        </a>
+                    </li>
                     <li class="nav-item" id="adminMenu2" style="display: none;">
                         <a class="nav-link" href="#" onclick="showSection('logs')">
                             <i class="fas fa-history me-1"></i>操作日志
@@ -278,7 +283,8 @@
                                         <tr>
                                             <th>用户名</th>
                                             <th>角色</th>
-                                            <th>微信昵称</th>
+                                            <th>微信绑定</th>
+                                            <th>微信OpenID</th>
                                             <th>最后登录</th>
                                             <th>状态</th>
                                             <th>创建时间</th>
@@ -290,6 +296,107 @@
                                     </tbody>
                                 </table>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 公众号配置（管理员） -->
+        <div id="wechatConfigSection" class="section" style="display: none;">
+            <div class="row">
+                <div class="col-12">
+                    <h2><i class="fab fa-weixin me-2"></i>微信公众号配置</h2>
+                    <p class="text-muted">配置微信公众号信息，用于推送模板消息通知</p>
+                </div>
+            </div>
+            <div class="row mt-4">
+                <div class="col-lg-8">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">公众号基本配置</h5>
+                        </div>
+                        <div class="card-body">
+                            <form id="wechatConfigForm">
+                                <div class="mb-3">
+                                    <label for="appId" class="form-label">AppID *</label>
+                                    <input type="text" class="form-control" id="appId" placeholder="请输入微信公众号AppID" required>
+                                    <div class="form-text">从微信公众平台获取</div>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="appSecret" class="form-label">AppSecret *</label>
+                                    <input type="password" class="form-control" id="appSecret" placeholder="请输入AppSecret" required>
+                                    <div class="form-text">妥善保管，不要泄露</div>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="templateId" class="form-label">消息模板ID</label>
+                                    <input type="text" class="form-control" id="templateId" placeholder="请输入消息模板ID">
+                                    <div class="form-text">用于推送项目通知的模板</div>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="token" class="form-label">Token</label>
+                                    <input type="text" class="form-control" id="token" placeholder="自定义Token">
+                                    <div class="form-text">用于服务器配置验证</div>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="encodingAESKey" class="form-label">EncodingAESKey</label>
+                                    <input type="text" class="form-control" id="encodingAESKey" placeholder="消息加密密钥（可选）">
+                                    <div class="form-text">选择加密模式时需要</div>
+                                </div>
+                                <div class="mb-3">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="enablePush" checked>
+                                        <label class="form-check-label" for="enablePush">
+                                            启用消息推送
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="d-grid gap-2">
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-save me-2"></i>保存配置
+                                    </button>
+                                    <button type="button" class="btn btn-outline-secondary" onclick="testWechatConnection()">
+                                        <i class="fas fa-plug me-2"></i>测试连接
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">配置说明</h5>
+                        </div>
+                        <div class="card-body">
+                            <h6><i class="fas fa-info-circle me-2"></i>使用步骤</h6>
+                            <ol class="small">
+                                <li>登录微信公众平台</li>
+                                <li>进入"开发"-"基本配置"</li>
+                                <li>获取AppID和AppSecret</li>
+                                <li>配置服务器地址和Token</li>
+                                <li>创建消息模板</li>
+                                <li>保存配置并测试连接</li>
+                            </ol>
+                            <hr>
+                            <h6><i class="fas fa-bell me-2"></i>推送规则</h6>
+                            <ul class="small mb-0">
+                                <li>员工新建项目 → 推送给管理员</li>
+                                <li>员工更新跟进记录 → 推送给管理员</li>
+                                <li>项目状态变更 → 推送给相关人员</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="card mt-3">
+                        <div class="card-header">
+                            <h5 class="mb-0">绑定二维码</h5>
+                        </div>
+                        <div class="card-body text-center">
+                            <canvas id="wechatBindQRCode" style="max-width: 200px;"></canvas>
+                            <p class="small text-muted mt-2">员工扫码关注公众号即可绑定</p>
+                            <button class="btn btn-sm btn-outline-primary" onclick="refreshBindQRCode()">
+                                <i class="fas fa-sync me-1"></i>刷新二维码
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -370,7 +477,7 @@
                                     <label for="customerCategory" class="form-label">客户类别 *</label>
                                     <select class="form-select" id="customerCategory" required>
                                         <option value="">请选择</option>
-                                        <option value="嫖客">嫖客</option>
+                                        <option value="成交过的客户">成交过的客户</option>
                                         <option value="潜客">潜客</option>
                                     </select>
                                 </div>
@@ -492,7 +599,7 @@
                                     <label for="editCustomerCategory" class="form-label">客户类别 *</label>
                                     <select class="form-select" id="editCustomerCategory" required>
                                         <option value="">请选择</option>
-                                        <option value="嫖客">嫖客</option>
+                                        <option value="成交过的客户">成交过的客户</option>
                                         <option value="潜客">潜客</option>
                                     </select>
                                 </div>
@@ -791,5 +898,6 @@
     <script src="js/user-management.js"></script>
     <script src="js/deal-project.js"></script>
     <script src="js/wechat-notification.js"></script>
+    <script src="js/wechat-config.js"></script>
 </body>
 </html>

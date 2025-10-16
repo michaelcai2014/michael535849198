@@ -106,6 +106,16 @@ function updateUIBasedOnRole() {
         adminMenu.style.display = isAdmin ? 'block' : 'none';
     }
     
+    const adminMenu2 = document.getElementById('adminMenu2');
+    if (adminMenu2) {
+        adminMenu2.style.display = isAdmin ? 'block' : 'none';
+    }
+    
+    const adminMenu3 = document.getElementById('adminMenu3');
+    if (adminMenu3) {
+        adminMenu3.style.display = isAdmin ? 'block' : 'none';
+    }
+    
     // 显示/隐藏用户卡片
     const usersCard = document.getElementById('usersCard');
     if (usersCard) {
@@ -152,6 +162,9 @@ function showSection(sectionName) {
                 break;
             case 'users':
                 loadUsers();
+                break;
+            case 'wechatConfig':
+                loadWechatConfig();
                 break;
             case 'logs':
                 loadLogs();
@@ -694,18 +707,29 @@ async function loadUsers() {
             
             data.data.forEach(user => {
                 const row = document.createElement('tr');
+                const wechatStatus = user.wechatBound ? 
+                    `<span class="badge bg-success"><i class="fas fa-check me-1"></i>已绑定</span>` : 
+                    `<span class="badge bg-secondary"><i class="fas fa-times me-1"></i>未绑定</span>`;
+                const wechatOpenId = user.wechatOpenid ? 
+                    `<code class="small">${user.wechatOpenid.substring(0, 12)}...</code>` : 
+                    '-';
+                
                 row.innerHTML = `
                     <td>${user.username}</td>
                     <td><span class="badge bg-${user.role === 'admin' ? 'danger' : 'primary'}">${user.role === 'admin' ? '管理员' : '员工'}</span></td>
-                    <td>${user.wechatNickname || '-'}</td>
+                    <td>${wechatStatus}</td>
+                    <td>${wechatOpenId}</td>
                     <td>${user.lastLogin ? new Date(user.lastLogin).toLocaleString('zh-CN') : '从未登录'}</td>
                     <td><span class="badge bg-${user.isActive ? 'success' : 'secondary'}">${user.isActive ? '活跃' : '禁用'}</span></td>
                     <td>${new Date(user.createdAt).toLocaleDateString('zh-CN')}</td>
                     <td>
-                        <button class="btn btn-sm btn-outline-warning me-1" onclick="editUser('${user._id}')">
+                        <button class="btn btn-sm btn-outline-success me-1" onclick="showUserBindQR('${user._id}', '${user.username}')" title="微信绑定">
+                            <i class="fab fa-weixin"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-warning me-1" onclick="editUser('${user._id}')" title="编辑">
                             <i class="fas fa-edit"></i>
                         </button>
-                        <button class="btn btn-sm btn-outline-danger" onclick="deleteUser('${user._id}')">
+                        <button class="btn btn-sm btn-outline-danger" onclick="deleteUser('${user._id}')" title="删除">
                             <i class="fas fa-trash"></i>
                         </button>
                     </td>

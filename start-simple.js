@@ -807,6 +807,189 @@ app.get('/api/wechat/callback', (req, res) => {
   res.redirect('/?wechat_login=success');
 });
 
+// ==================== 微信公众号配置相关 ====================
+
+// 模拟微信公众号配置数据
+let wechatConfig = {
+  appId: '',
+  appSecret: '',
+  templateId: '',
+  token: '',
+  encodingAESKey: '',
+  enablePush: true
+};
+
+// 获取微信公众号配置
+app.get('/api/wechat/config', authenticateToken, (req, res) => {
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({
+      success: false,
+      message: '权限不足'
+    });
+  }
+  
+  res.json({
+    success: true,
+    data: wechatConfig
+  });
+});
+
+// 保存微信公众号配置
+app.post('/api/wechat/config', authenticateToken, (req, res) => {
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({
+      success: false,
+      message: '权限不足'
+    });
+  }
+  
+  wechatConfig = {
+    appId: req.body.appId || '',
+    appSecret: req.body.appSecret || '',
+    templateId: req.body.templateId || '',
+    token: req.body.token || '',
+    encodingAESKey: req.body.encodingAESKey || '',
+    enablePush: req.body.enablePush !== false
+  };
+  
+  console.log('📝 微信公众号配置已更新');
+  console.log('   AppID:', wechatConfig.appId);
+  console.log('   启用推送:', wechatConfig.enablePush);
+  
+  res.json({
+    success: true,
+    message: '配置保存成功',
+    data: wechatConfig
+  });
+});
+
+// 测试微信公众号连接
+app.get('/api/wechat/test', authenticateToken, (req, res) => {
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({
+      success: false,
+      message: '权限不足'
+    });
+  }
+  
+  // 模拟连接测试
+  console.log('🔌 测试微信公众号连接...');
+  console.log('   AppID:', wechatConfig.appId);
+  
+  if (!wechatConfig.appId || !wechatConfig.appSecret) {
+    return res.json({
+      success: false,
+      message: '请先配置AppID和AppSecret'
+    });
+  }
+  
+  // 模拟成功
+  res.json({
+    success: true,
+    message: '连接测试成功！（模拟）'
+  });
+});
+
+// 用户扫码绑定微信（模拟）
+app.get('/api/wechat/bind', (req, res) => {
+  const userId = req.query.userId;
+  
+  // 生成一个二维码页面
+  res.send(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>微信扫码绑定</title>
+      <style>
+        body { 
+          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+          display: flex; 
+          justify-content: center; 
+          align-items: center; 
+          min-height: 100vh; 
+          margin: 0;
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .container { 
+          text-align: center; 
+          background: white; 
+          padding: 40px; 
+          border-radius: 20px;
+          box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+          max-width: 400px;
+        }
+        h2 { 
+          color: #333; 
+          margin-bottom: 20px;
+        }
+        .wechat-icon {
+          font-size: 80px;
+          color: #07C160;
+          margin: 20px 0;
+        }
+        p { 
+          color: #666; 
+          line-height: 1.6;
+        }
+        .tips {
+          background: #f5f5f5;
+          padding: 15px;
+          border-radius: 8px;
+          margin-top: 20px;
+          font-size: 14px;
+          color: #999;
+        }
+        .button {
+          display: inline-block;
+          margin-top: 20px;
+          padding: 12px 30px;
+          background: #07C160;
+          color: white;
+          text-decoration: none;
+          border-radius: 25px;
+          font-weight: 500;
+          transition: all 0.3s;
+        }
+        .button:hover {
+          background: #06ad56;
+          transform: translateY(-2px);
+          box-shadow: 0 5px 15px rgba(7,193,96,0.3);
+        }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="wechat-icon">🔗</div>
+        <h2>微信绑定</h2>
+        <p>在真实环境中，此页面会显示微信公众号二维码</p>
+        <p><strong>用户ID:</strong> ${userId || '未指定'}</p>
+        <div class="tips">
+          <p><strong>实际接入步骤：</strong></p>
+          <ol style="text-align: left; padding-left: 20px; margin: 10px 0;">
+            <li>配置公众号AppID和AppSecret</li>
+            <li>生成带参数的临时二维码</li>
+            <li>用户扫码关注公众号</li>
+            <li>接收关注事件获取OpenID</li>
+            <li>将OpenID与用户ID绑定</li>
+          </ol>
+        </div>
+        <a href="javascript:window.close()" class="button">关闭窗口</a>
+      </div>
+      <script>
+        // 模拟绑定成功（3秒后）
+        setTimeout(() => {
+          if (confirm('模拟绑定成功！\\n\\n实际环境中，此操作会自动完成。\\n\\n是否关闭窗口？')) {
+            window.close();
+          }
+        }, 3000);
+      </script>
+    </body>
+    </html>
+  `);
+});
+
 // 404处理
 app.use('*', (req, res) => {
   res.status(404).json({
