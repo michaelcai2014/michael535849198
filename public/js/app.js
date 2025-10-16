@@ -80,9 +80,39 @@ function showMainInterface() {
     // 显示导航栏
     document.querySelector('.navbar').style.display = 'block';
     
+    // 根据用户角色显示/隐藏菜单
+    updateUIBasedOnRole();
+    
     // 默认显示仪表板
     showSection('dashboard');
     loadDashboard();
+}
+
+// 根据用户角色更新UI
+function updateUIBasedOnRole() {
+    if (!currentUser) return;
+    
+    const isAdmin = currentUser.role === 'admin' || currentUser.username === 'Michael';
+    
+    // 显示/隐藏管理员菜单
+    const adminMenu = document.getElementById('adminMenu');
+    if (adminMenu) {
+        adminMenu.style.display = isAdmin ? 'block' : 'none';
+    }
+    
+    // 显示/隐藏用户卡片
+    const usersCard = document.getElementById('usersCard');
+    if (usersCard) {
+        usersCard.style.display = isAdmin ? 'block' : 'none';
+    }
+    
+    // 显示/隐藏操作日志菜单
+    const logsMenu = document.getElementById('logsMenu');
+    if (logsMenu) {
+        logsMenu.style.display = isAdmin ? 'block' : 'none';
+    }
+    
+    console.log('用户角色:', currentUser.role, '是否管理员:', isAdmin);
 }
 
 // 显示指定区域
@@ -167,8 +197,15 @@ async function handleLogin(event) {
             localStorage.setItem('authToken', authToken);
             localStorage.setItem('currentUser', JSON.stringify(currentUser));
             
-            showMainInterface();
             showToast('登录成功', 'success');
+            
+            // 检查是否需要绑定微信
+            if (typeof checkWechatBinding === 'function') {
+                checkWechatBinding();
+            } else {
+                // 如果没有绑定功能，直接进入主界面
+                showMainInterface();
+            }
         } else {
             showToast(data.message || '登录失败', 'error');
         }
@@ -427,7 +464,19 @@ async function loadTrackingProjects() {
             const tbody = document.querySelector('#trackingProjectsTable tbody');
             tbody.innerHTML = '';
             
-            data.data.projects.forEach(project => {
+            // 权限控制：员工只看自己的项目，管理员看所有项目
+            const isAdmin = currentUser && (currentUser.role === 'admin' || currentUser.username === 'Michael');
+            const projects = isAdmin ? data.data.projects : data.data.projects.filter(p => {
+                const followerUsername = p.follower.username || p.follower;
+                return followerUsername === currentUser.username;
+            });
+            
+            if (projects.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted">暂无项目</td></tr>';
+                return;
+            }
+            
+            projects.forEach(project => {
                 const row = document.createElement('tr');
                 row.innerHTML = `
                     <td>${project.projectName}</td>
@@ -474,7 +523,19 @@ async function loadDealProjects() {
             const tbody = document.querySelector('#dealProjectsTable tbody');
             tbody.innerHTML = '';
             
-            data.data.projects.forEach(project => {
+            // 权限控制：员工只看自己的项目，管理员看所有项目
+            const isAdmin = currentUser && (currentUser.role === 'admin' || currentUser.username === 'Michael');
+            const projects = isAdmin ? data.data.projects : data.data.projects.filter(p => {
+                const followerUsername = p.follower.username || p.follower;
+                return followerUsername === currentUser.username;
+            });
+            
+            if (projects.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted">暂无成交项目</td></tr>';
+                return;
+            }
+            
+            projects.forEach(project => {
                 const row = document.createElement('tr');
                 row.innerHTML = `
                     <td>${project.projectName}</td>

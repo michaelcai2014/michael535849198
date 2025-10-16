@@ -539,6 +539,112 @@ app.post('/api/wechat/notify', authenticateToken, (req, res) => {
   });
 });
 
+// 微信绑定接口
+app.get('/api/wechat/bind', (req, res) => {
+  const { state, user } = req.query;
+  
+  // 实际应用中这里会调用微信API获取用户信息
+  // 现在返回模拟的绑定页面
+  res.send(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>微信绑定</title>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <style>
+        body { font-family: Arial; text-align: center; padding: 50px; }
+        .success { color: #52c41a; font-size: 48px; }
+        button { padding: 10px 30px; font-size: 16px; background: #52c41a; color: white; border: none; border-radius: 5px; cursor: pointer; margin-top: 20px; }
+      </style>
+    </head>
+    <body>
+      <div class="success">✓</div>
+      <h2>微信绑定成功！</h2>
+      <p>用户: ${user}</p>
+      <p>您现在可以接收微信推送通知了</p>
+      <button onclick="window.close()">关闭页面</button>
+      <script>
+        // 通知主页面绑定成功
+        if (window.opener) {
+          window.opener.postMessage({ type: 'wechat_bound', state: '${state}' }, '*');
+        }
+        // 3秒后自动关闭
+        setTimeout(() => window.close(), 3000);
+      </script>
+    </body>
+    </html>
+  `);
+});
+
+// 检查微信绑定状态
+app.get('/api/wechat/bind-status', authenticateToken, (req, res) => {
+  const { state } = req.query;
+  
+  // 实际应用中这里会检查数据库中的绑定状态
+  // 现在模拟绑定成功
+  const isBound = Math.random() > 0.7; // 30%概率返回已绑定
+  
+  res.json({
+    success: true,
+    bound: isBound,
+    wechatInfo: isBound ? {
+      nickname: req.user.username + '_WeChat',
+      openid: 'mock_openid_' + Date.now()
+    } : null
+  });
+});
+
+// 管理员添加反馈到项目
+app.post('/api/tracking/:id/admin-remark', authenticateToken, (req, res) => {
+  const projectId = parseInt(req.params.id);
+  const { remark } = req.body;
+  const project = mockProjects.find(p => p.id === projectId);
+  
+  if (project) {
+    const now = new Date();
+    const remarkRecord = {
+      content: `【管理员备注】${remark}`,
+      date: now,
+      updatedBy: { 
+        username: 'Michael',
+        wechatNickname: 'Michael'
+      },
+      timestamp: now.toISOString(),
+      formattedDate: now.toLocaleString('zh-CN', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+      }),
+      isAdminRemark: true
+    };
+    
+    if (!project.followUpRecords) {
+      project.followUpRecords = [];
+    }
+    project.followUpRecords.push(remarkRecord);
+    project.lastUpdated = now;
+    
+    console.log('📝 管理员添加备注:', project.projectName);
+    console.log('   备注内容:', remark);
+    console.log('   推送给:', project.follower);
+    
+    res.json({
+      success: true,
+      message: '备注添加成功',
+      data: project
+    });
+  } else {
+    res.status(404).json({
+      success: false,
+      message: '项目不存在'
+    });
+  }
+});
+
 // 微信登录回调（演示）
 app.get('/api/wechat/callback', (req, res) => {
   res.redirect('/?wechat_login=success');
