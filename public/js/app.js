@@ -472,10 +472,29 @@ async function loadTrackingProjects() {
             
             // 权限控制：员工只看自己的项目，管理员看所有项目
             const isAdmin = currentUser && (currentUser.role === 'admin' || currentUser.username === 'Michael');
+            
+            console.log('当前用户:', currentUser.username, '是否管理员:', isAdmin);
+            console.log('所有项目数量:', data.data.projects.length);
+            
             const projects = isAdmin ? data.data.projects : data.data.projects.filter(p => {
-                const followerUsername = p.follower.username || p.follower;
-                return followerUsername === currentUser.username;
+                // 获取跟进人用户名
+                let followerUsername;
+                if (typeof p.follower === 'object' && p.follower !== null) {
+                    followerUsername = p.follower.username || p.follower._id;
+                } else {
+                    followerUsername = p.follower;
+                }
+                
+                const isMatch = followerUsername === currentUser.username || 
+                                followerUsername === currentUser.id ||
+                                (p.follower && p.follower._id === currentUser.id);
+                
+                console.log('项目:', p.projectName, '跟进人:', followerUsername, '当前用户:', currentUser.username, '匹配:', isMatch);
+                
+                return isMatch;
             });
+            
+            console.log('过滤后项目数量:', projects.length);
             
             if (projects.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted">暂无项目</td></tr>';
@@ -531,9 +550,19 @@ async function loadDealProjects() {
             
             // 权限控制：员工只看自己的项目，管理员看所有项目
             const isAdmin = currentUser && (currentUser.role === 'admin' || currentUser.username === 'Michael');
+            
             const projects = isAdmin ? data.data.projects : data.data.projects.filter(p => {
-                const followerUsername = p.follower.username || p.follower;
-                return followerUsername === currentUser.username;
+                // 获取跟进人用户名
+                let followerUsername;
+                if (typeof p.follower === 'object' && p.follower !== null) {
+                    followerUsername = p.follower.username || p.follower._id;
+                } else {
+                    followerUsername = p.follower;
+                }
+                
+                return followerUsername === currentUser.username || 
+                       followerUsername === currentUser.id ||
+                       (p.follower && p.follower._id === currentUser.id);
             });
             
             if (projects.length === 0) {
