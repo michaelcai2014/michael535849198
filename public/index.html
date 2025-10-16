@@ -219,11 +219,12 @@
         <div id="dealsSection" class="section" style="display: none;">
             <div class="row">
                 <div class="col-12">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div class="mb-3">
                         <h2><i class="fas fa-handshake me-2"></i>已成交项目</h2>
-                        <button class="btn btn-primary" onclick="showAddDealProjectModal()">
-                            <i class="fas fa-plus me-2"></i>新增项目
-                        </button>
+                        <p class="text-muted small">
+                            <i class="fas fa-info-circle me-1"></i>
+                            已成交项目由跟进项目状态变为"Deal"时自动创建
+                        </p>
                     </div>
                 </div>
             </div>
@@ -262,7 +263,7 @@
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h2><i class="fas fa-users me-2"></i>用户管理</h2>
                         <button class="btn btn-primary" onclick="showAddUserModal()">
-                            <i class="fas fa-plus me-2"></i>新增用户
+                            <i class="fas fa-plus me-2"></i>新增员工账号
                         </button>
                     </div>
                 </div>
@@ -673,11 +674,120 @@
         </div>
     </div>
 
+    <!-- 新增用户模态框 -->
+    <div class="modal fade" id="addUserModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-user-plus me-2"></i>新增员工账号
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addUserForm">
+                        <div class="mb-3">
+                            <label for="newUsername" class="form-label">用户名 *</label>
+                            <input type="text" class="form-control" id="newUsername" required placeholder="请输入用户名">
+                        </div>
+                        <div class="mb-3">
+                            <label for="newPassword" class="form-label">密码 *</label>
+                            <input type="password" class="form-control" id="newPassword" required placeholder="至少6位字符" minlength="6">
+                        </div>
+                        <div class="mb-3">
+                            <label for="newUserRole" class="form-label">角色 *</label>
+                            <select class="form-select" id="newUserRole" required>
+                                <option value="employee">员工</option>
+                                <option value="admin">管理员</option>
+                            </select>
+                        </div>
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            员工创建后可使用微信授权登录，系统会自动推送通知
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" onclick="saveNewUser()">
+                        <i class="fas fa-save me-1"></i>创建账号
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 编辑成交项目模态框 -->
+    <div class="modal fade" id="editDealProjectModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-edit me-2"></i>编辑成交项目
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="editDealProjectForm">
+                        <input type="hidden" id="editDealProjectId">
+                        <div class="mb-3">
+                            <label for="editDealProjectName" class="form-label">项目名称</label>
+                            <input type="text" class="form-control" id="editDealProjectName" readonly>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editDealDate" class="form-label">签单时间</label>
+                            <input type="text" class="form-control" id="editDealDate" readonly>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="editDealChannel" class="form-label">渠道</label>
+                                    <input type="text" class="form-control" id="editDealChannel" readonly>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="editDealFollower" class="form-label">项目经理</label>
+                                    <input type="text" class="form-control" id="editDealFollower" readonly>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editDealStatus" class="form-label">状态 *</label>
+                            <select class="form-select" id="editDealStatus" required>
+                                <option value="挂单">挂单</option>
+                                <option value="进行中">进行中</option>
+                                <option value="已关闭">已关闭</option>
+                                <option value="已完成">已完成</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editDealProgress" class="form-label">项目进展</label>
+                            <textarea class="form-control" id="editDealProgress" rows="6" maxlength="10000" placeholder="记录项目进展，建议格式：进展描述（日期）&#10;例如：今天启动，安排人员前端和后台设计（1015）"></textarea>
+                            <div class="form-text">
+                                最多10000字。建议格式：进展描述（日期MMDD）
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" onclick="updateDealProject()">
+                        <i class="fas fa-save me-1"></i>保存
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- 加载脚本 -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
     <script src="js/app.js"></script>
     <script src="js/update-project.js"></script>
     <script src="js/follow-up.js"></script>
+    <script src="js/user-management.js"></script>
+    <script src="js/deal-project.js"></script>
+    <script src="js/wechat-notification.js"></script>
 </body>
 </html>

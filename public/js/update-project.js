@@ -29,11 +29,18 @@ async function updateTrackingProject() {
         if (data.success) {
             showToast('项目更新成功', 'success');
             bootstrap.Modal.getInstance(document.getElementById('editTrackingProjectModal')).hide();
+            
+            // 发送微信推送通知管理员
+            if (typeof notifyProjectCreated === 'function') {
+                notifyProjectCreated(formData.projectName, `项目更新：${formData.details || '无详情'}`);
+            }
+            
             loadTrackingProjects();
             
-            // 如果状态变为Deal，提示用户查看成交项目
+            // 如果状态变为Deal，提示用户查看成交项目并刷新成交项目列表
             if (formData.status === 'Deal') {
                 showToast('项目已成交！已自动创建成交项目，请查看"已成交项目"页面', 'success');
+                loadDealProjects();
             }
         } else {
             showToast(data.message, 'error');

@@ -24,6 +24,12 @@ async function saveFollowUpRecord() {
             showToast('跟进记录添加成功', 'success');
             bootstrap.Modal.getInstance(document.getElementById('addFollowUpModal')).hide();
             
+            // 发送微信推送通知管理员
+            const project = data.data;
+            if (typeof notifyFollowUpAdded === 'function' && project) {
+                notifyFollowUpAdded(project.projectName || '项目', content);
+            }
+            
             // 刷新跟进项目列表
             loadTrackingProjects();
         } else {

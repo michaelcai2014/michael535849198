@@ -23,7 +23,7 @@ app.use((req, res, next) => {
 
 // 模拟数据
 const mockUsers = [
-  { id: 1, username: 'Michael', role: 'admin', wechatNickname: 'Michael' }
+  { id: 1, username: 'Michael', password: '123456', role: 'admin', wechatNickname: 'Michael' }
 ];
 
 const mockProjects = [
@@ -49,7 +49,8 @@ const authenticateToken = (req, res, next) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
   
-  if (token === 'mock-token') {
+  // 接受所有mock-token开头的token
+  if (token && token.startsWith('mock-token')) {
     req.user = { userId: 1, role: 'admin' };
     next();
   } else {
@@ -61,17 +62,30 @@ const authenticateToken = (req, res, next) => {
 app.post('/api/auth/login', (req, res) => {
   const { username, password } = req.body;
   
-  if (username === 'Michael' && password === '123456') {
+  // 查找用户
+  const user = mockUsers.find(u => u.username === username);
+  
+  if (!user) {
+    return res.status(401).json({
+      success: false,
+      message: '用户名或密码错误'
+    });
+  }
+  
+  // 验证密码（实际应用中应该使用加密密码比较）
+  const isPasswordValid = user.password ? user.password === password : (username === 'Michael' && password === '123456');
+  
+  if (isPasswordValid) {
     res.json({
       success: true,
       message: '登录成功',
       data: {
-        token: 'mock-token',
+        token: 'mock-token-' + user.id,
         user: {
-          id: 1,
-          username: 'Michael',
-          role: 'admin',
-          wechatNickname: 'Michael'
+          id: user.id,
+          username: user.username,
+          role: user.role,
+          wechatNickname: user.wechatNickname
         }
       }
     });
@@ -124,6 +138,57 @@ app.get('/api/projects', authenticateToken, (req, res) => {
   });
 });
 
+// 获取单个成交项目详情
+app.get('/api/projects/:id', authenticateToken, (req, res) => {
+  const projectId = parseInt(req.params.id);
+  const project = mockDealProjects.find(p => p.id === projectId);
+  
+  if (project) {
+    res.json({
+      success: true,
+      data: {
+        ...project,
+        _id: project.id,
+        follower: { username: project.follower, wechatNickname: project.follower }
+      }
+    });
+  } else {
+    res.status(404).json({
+      success: false,
+      message: '项目不存在'
+    });
+  }
+});
+
+// 更新成交项目
+app.put('/api/projects/:id', authenticateToken, (req, res) => {
+  const projectId = parseInt(req.params.id);
+  const projectIndex = mockDealProjects.findIndex(p => p.id === projectId);
+  
+  if (projectIndex !== -1) {
+    // 只允许更新状态和进展
+    mockDealProjects[projectIndex] = {
+      ...mockDealProjects[projectIndex],
+      status: req.body.status || mockDealProjects[projectIndex].status,
+      progress: req.body.progress !== undefined ? req.body.progress : mockDealProjects[projectIndex].progress,
+      lastUpdated: new Date()
+    };
+    
+    console.log('成交项目更新:', mockDealProjects[projectIndex].projectName);
+    
+    res.json({
+      success: true,
+      message: '项目更新成功',
+      data: mockDealProjects[projectIndex]
+    });
+  } else {
+    res.status(404).json({
+      success: false,
+      message: '项目不存在'
+    });
+  }
+});
+
 // 获取用户列表
 app.get('/api/users', authenticateToken, (req, res) => {
   res.json({
@@ -135,6 +200,50 @@ app.get('/api/users', authenticateToken, (req, res) => {
       lastLogin: new Date(),
       createdAt: new Date()
     }))
+  });
+});
+
+// 创建新用户
+app.post('/api/users', authenticateToken, (req, res) => {
+  const { username, password, role } = req.body;
+  
+  if (!username || !password) {
+    return res.status(400).json({
+      success: false,
+      message: '用户名和密码不能为空'
+    });
+  }
+  
+  // 检查用户名是否已存在
+  if (mockUsers.find(u => u.username === username)) {
+    return res.status(400).json({
+      success: false,
+      message: '用户名已存在'
+    });
+  }
+  
+  const newUser = {
+    id: mockUsers.length + 1,
+    username,
+    password, // 实际应用中应该加密
+    role: role || 'employee',
+    wechatNickname: username,
+    createdAt: new Date()
+  };
+  
+  mockUsers.push(newUser);
+  
+  console.log('新用户创建成功:', username);
+  
+  res.status(201).json({
+    success: true,
+    message: '用户创建成功',
+    data: {
+      _id: newUser.id,
+      username: newUser.username,
+      role: newUser.role,
+      wechatNickname: newUser.wechatNickname
+    }
   });
 });
 
@@ -411,6 +520,28 @@ app.use((err, req, res, next) => {
     success: false,
     message: '服务器内部错误'
   });
+});
+
+// 微信推送通知API
+app.post('/api/wechat/notify', authenticateToken, (req, res) => {
+  const { type, data } = req.body;
+  
+  console.log('📱 微信推送通知:');
+  console.log('   类型:', type);
+  console.log('   内容:', JSON.stringify(data, null, 2));
+  
+  // 实际应用中这里会调用微信API发送模板消息
+  // 现在只是记录日志
+  
+  res.json({
+    success: true,
+    message: '推送通知已发送'
+  });
+});
+
+// 微信登录回调（演示）
+app.get('/api/wechat/callback', (req, res) => {
+  res.redirect('/?wechat_login=success');
 });
 
 // 404处理
