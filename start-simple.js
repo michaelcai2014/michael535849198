@@ -34,10 +34,15 @@ const mockProjects = [
     customerCategory: '潜客',
     customerBackground: '初创企业',
     channel: 'Michael',
-    follower: 'Michael',
+    follower: {
+      _id: 1,
+      username: 'Michael',
+      wechatNickname: 'Michael'
+    },
     priority: '高',
     status: 'WIP',
     details: '这是一个测试项目',
+    createdAt: new Date(),
     lastUpdated: new Date()
   }
 ];
@@ -269,20 +274,33 @@ app.get('/api/logs', authenticateToken, (req, res) => {
 
 // 创建跟进项目
 app.post('/api/tracking', authenticateToken, (req, res) => {
+  // 查找跟进人信息
+  const followerId = parseInt(req.body.follower) || req.body.follower;
+  const followerUser = mockUsers.find(u => u.id === followerId || u.username === followerId);
+  
   const newProject = {
     id: mockProjects.length + 1,
     ...req.body,
+    follower: followerUser ? {
+      _id: followerUser.id,
+      username: followerUser.username,
+      wechatNickname: followerUser.wechatNickname || followerUser.username
+    } : req.body.follower,
     channel: req.body.channel || '', // 允许空值
+    createdAt: new Date(),
     lastUpdated: new Date()
   };
   mockProjects.push(newProject);
+  
+  console.log('创建项目:', newProject.projectName, '跟进人:', newProject.follower.username);
   
   res.status(201).json({
     success: true,
     message: '项目创建成功',
     data: {
       ...newProject,
-      _id: newProject.id
+      _id: newProject.id,
+      follower: newProject.follower
     }
   });
 });
@@ -296,9 +314,24 @@ app.put('/api/tracking/:id', authenticateToken, (req, res) => {
     const oldProject = { ...mockProjects[projectIndex] };
     const newStatus = req.body.status;
     
+    // 如果更新了跟进人，转换为用户对象
+    let followerData = mockProjects[projectIndex].follower;
+    if (req.body.follower) {
+      const followerId = parseInt(req.body.follower) || req.body.follower;
+      const followerUser = mockUsers.find(u => u.id === followerId || u.username === followerId);
+      if (followerUser) {
+        followerData = {
+          _id: followerUser.id,
+          username: followerUser.username,
+          wechatNickname: followerUser.wechatNickname || followerUser.username
+        };
+      }
+    }
+    
     mockProjects[projectIndex] = {
       ...mockProjects[projectIndex],
       ...req.body,
+      follower: followerData,
       lastUpdated: new Date()
     };
     
