@@ -527,9 +527,6 @@ async function loadTrackingProjects() {
         const data = await response.json();
         
         if (data.success) {
-            const tbody = document.querySelector('#trackingProjectsTable tbody');
-            tbody.innerHTML = '';
-            
             // 权限控制：员工只看自己的项目，管理员看所有项目
             const isAdmin = currentUser && (currentUser.role === 'admin' || currentUser.username === 'Michael');
             
@@ -564,36 +561,11 @@ async function loadTrackingProjects() {
             
             console.log('过滤后项目数量:', projects.length);
             
-            if (projects.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted">暂无项目</td></tr>';
-                return;
-            }
+            // 将数据存储到全局变量，供筛选使用
+            allTrackingProjects = projects;
             
-            projects.forEach(project => {
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${project.projectName}</td>
-                    <td>${project.customerIdentity}</td>
-                    <td>${project.customerCategory}</td>
-                    <td>${project.channel || '-'}</td>
-                    <td>${project.follower.wechatNickname || project.follower.username}</td>
-                    <td><span class="priority-${project.priority === '高' ? 'high' : 'low'}">${project.priority}</span></td>
-                    <td><span class="status-badge status-${project.status.toLowerCase()}">${project.status}</span></td>
-                    <td>${new Date(project.lastUpdated).toLocaleString('zh-CN')}</td>
-                    <td>
-                        <button class="btn btn-sm btn-outline-primary me-1" onclick="viewProjectDetail('${project._id}', 'tracking')">
-                            <i class="fas fa-eye"></i>
-                        </button>
-                        <button class="btn btn-sm btn-outline-warning me-1" onclick="editTrackingProject('${project._id}')">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                        <button class="btn btn-sm btn-outline-danger" onclick="deleteTrackingProject('${project._id}')">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </td>
-                `;
-                tbody.appendChild(row);
-            });
+            // 显示项目
+            displayTrackingProjects(projects);
         }
     } catch (error) {
         console.error('加载跟进项目错误:', error);
@@ -650,34 +622,11 @@ async function loadDealProjects() {
             
             console.log('成交项目 - 过滤后项目数量:', projects.length);
             
-            if (projects.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted">暂无成交项目</td></tr>';
-                return;
-            }
+            // 将数据存储到全局变量，供筛选使用
+            allDealProjects = projects;
             
-            projects.forEach(project => {
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${project.projectName}</td>
-                    <td>${new Date(project.dealDate).toLocaleDateString('zh-CN')}</td>
-                    <td>${project.channel}</td>
-                    <td>${project.follower.wechatNickname || project.follower.username}</td>
-                    <td><span class="status-badge status-${project.status}">${project.status}</span></td>
-                    <td>${new Date(project.lastUpdated).toLocaleString('zh-CN')}</td>
-                    <td>
-                        <button class="btn btn-sm btn-outline-primary me-1" onclick="viewProjectDetail('${project._id}', 'deal')">
-                            <i class="fas fa-eye"></i>
-                        </button>
-                        <button class="btn btn-sm btn-outline-warning me-1" onclick="editDealProject('${project._id}')">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                        <button class="btn btn-sm btn-outline-danger" onclick="deleteDealProject('${project._id}')">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </td>
-                `;
-                tbody.appendChild(row);
-            });
+            // 显示项目
+            displayDealProjects(projects);
         }
     } catch (error) {
         console.error('加载成交项目错误:', error);

@@ -190,6 +190,81 @@
                     </div>
                 </div>
             </div>
+            <!-- 筛选表单 -->
+            <div class="row mb-3">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0"><i class="fas fa-filter me-2"></i>筛选条件</h6>
+                        </div>
+                        <div class="card-body">
+                            <form id="trackingFilterForm" class="row g-3">
+                                <div class="col-md-3">
+                                    <label class="form-label small">项目名称</label>
+                                    <input type="text" class="form-control form-control-sm" id="filterTrackingName" placeholder="搜索项目名称">
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label small">客户身份</label>
+                                    <select class="form-select form-select-sm" id="filterTrackingIdentity">
+                                        <option value="">全部</option>
+                                        <option value="国内个人">国内个人</option>
+                                        <option value="国外个人">国外个人</option>
+                                        <option value="老板">老板</option>
+                                        <option value="项目负责人">项目负责人</option>
+                                        <option value="项目执行人">项目执行人</option>
+                                        <option value="中间人">中间人</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label small">客户类别</label>
+                                    <select class="form-select form-select-sm" id="filterTrackingCategory">
+                                        <option value="">全部</option>
+                                        <option value="成交过的客户">成交过的客户</option>
+                                        <option value="潜客">潜客</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label small">渠道</label>
+                                    <select class="form-select form-select-sm" id="filterTrackingChannel">
+                                        <option value="">全部</option>
+                                        <option value="蔡宗林">蔡宗林</option>
+                                        <option value="Michael">Michael</option>
+                                        <option value="视频号">视频号</option>
+                                        <option value="抖音">抖音</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label small">优先级</label>
+                                    <select class="form-select form-select-sm" id="filterTrackingPriority">
+                                        <option value="">全部</option>
+                                        <option value="高">高</option>
+                                        <option value="低">低</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-1">
+                                    <label class="form-label small">状态</label>
+                                    <select class="form-select form-select-sm" id="filterTrackingStatus">
+                                        <option value="">全部</option>
+                                        <option value="WIP">WIP</option>
+                                        <option value="Close">Close</option>
+                                        <option value="Deal">Deal</option>
+                                        <option value="Pending">Pending</option>
+                                    </select>
+                                </div>
+                                <div class="col-12">
+                                    <button type="button" class="btn btn-sm btn-primary" onclick="applyTrackingFilters()">
+                                        <i class="fas fa-search me-1"></i>筛选
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-secondary" onclick="resetTrackingFilters()">
+                                        <i class="fas fa-redo me-1"></i>重置
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
             <div class="row">
                 <div class="col-12">
                     <div class="card">
@@ -233,6 +308,56 @@
                     </div>
                 </div>
             </div>
+            <!-- 筛选表单 -->
+            <div class="row mb-3">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0"><i class="fas fa-filter me-2"></i>筛选条件</h6>
+                        </div>
+                        <div class="card-body">
+                            <form id="dealFilterForm" class="row g-3">
+                                <div class="col-md-4">
+                                    <label class="form-label small">项目名称</label>
+                                    <input type="text" class="form-control form-control-sm" id="filterDealName" placeholder="搜索项目名称">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label small">渠道</label>
+                                    <select class="form-select form-select-sm" id="filterDealChannel">
+                                        <option value="">全部</option>
+                                        <option value="蔡宗林">蔡宗林</option>
+                                        <option value="Michael">Michael</option>
+                                        <option value="视频号">视频号</option>
+                                        <option value="抖音">抖音</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label small">状态</label>
+                                    <select class="form-select form-select-sm" id="filterDealStatus">
+                                        <option value="">全部</option>
+                                        <option value="进行中">进行中</option>
+                                        <option value="暂停">暂停</option>
+                                        <option value="关闭">关闭</option>
+                                        <option value="已完成">已完成</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label small">&nbsp;</label>
+                                    <div>
+                                        <button type="button" class="btn btn-sm btn-primary" onclick="applyDealFilters()">
+                                            <i class="fas fa-search me-1"></i>筛选
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-secondary" onclick="resetDealFilters()">
+                                            <i class="fas fa-redo me-1"></i>重置
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
             <div class="row">
                 <div class="col-12">
                     <div class="card">
@@ -915,5 +1040,6 @@
     <script src="js/deal-project.js"></script>
     <script src="js/wechat-notification.js"></script>
     <script src="js/wechat-config.js"></script>
+    <script src="js/filters.js"></script>
 </body>
 </html>
