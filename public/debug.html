@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>调试页面</title>
+</head>
+<body>
+    <h1>调试信息</h1>
+    <div id="debug"></div>
+    
+    <script>
+        const debugDiv = document.getElementById('debug');
+        
+        function log(message) {
+            debugDiv.innerHTML += '<p>' + new Date().toISOString() + ': ' + message + '</p>';
+            console.log(message);
+        }
+        
+        log('页面加载完成');
+        
+        // 测试API连接
+        fetch('/api/auth/login', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ username: 'Michael', password: '123456' })
+        })
+        .then(response => {
+            log('API响应状态: ' + response.status);
+            return response.json();
+        })
+        .then(data => {
+            log('API响应数据: ' + JSON.stringify(data));
+        })
+        .catch(error => {
+            log('API错误: ' + error.message);
+        });
+    </script>
+</body>
+</html>

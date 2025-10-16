@@ -10,12 +10,28 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // 初始化应用
 function initializeApp() {
+    console.log('初始化应用...');
+    
     // 检查是否已登录
     const token = localStorage.getItem('authToken');
-    if (token) {
-        authToken = token;
-        loadUserInfo();
+    const user = localStorage.getItem('currentUser');
+    
+    if (token && user) {
+        try {
+            authToken = token;
+            currentUser = JSON.parse(user);
+            console.log('发现已保存的用户:', currentUser);
+            
+            // 验证token是否有效
+            loadUserInfo();
+        } catch (error) {
+            console.error('解析用户信息错误:', error);
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('currentUser');
+            showLoginSection();
+        }
     } else {
+        console.log('未找到登录信息，显示登录页面');
         showLoginSection();
     }
     
@@ -26,15 +42,31 @@ function initializeApp() {
 // 绑定事件监听器
 function bindEventListeners() {
     // 登录表单提交
-    document.getElementById('loginForm').addEventListener('submit', handleLogin);
+    const loginForm = document.getElementById('loginForm');
+    if (loginForm) {
+        loginForm.addEventListener('submit', handleLogin);
+        console.log('登录表单事件监听器已绑定');
+    } else {
+        console.error('未找到登录表单');
+    }
     
     // 微信登录按钮
-    document.getElementById('wechatLoginBtn')?.addEventListener('click', wechatLogin);
+    const wechatBtn = document.getElementById('wechatLoginBtn');
+    if (wechatBtn) {
+        wechatBtn.addEventListener('click', wechatLogin);
+        console.log('微信登录按钮事件监听器已绑定');
+    }
 }
 
 // 显示登录页面
 function showLoginSection() {
+    console.log('显示登录页面...');
     document.getElementById('loginSection').style.display = 'block';
+    
+    // 隐藏导航栏
+    document.querySelector('.navbar').style.display = 'none';
+    
+    // 隐藏所有区域
     document.querySelectorAll('.section').forEach(section => {
         section.style.display = 'none';
     });
@@ -42,7 +74,13 @@ function showLoginSection() {
 
 // 显示主界面
 function showMainInterface() {
+    console.log('显示主界面...');
     document.getElementById('loginSection').style.display = 'none';
+    
+    // 显示导航栏
+    document.querySelector('.navbar').style.display = 'block';
+    
+    // 默认显示仪表板
     showSection('dashboard');
     loadDashboard();
 }
@@ -93,7 +131,16 @@ async function handleLogin(event) {
     const username = document.getElementById('username').value;
     const password = document.getElementById('password').value;
     
+    // 显示加载状态
+    const submitBtn = event.target.querySelector('button[type="submit"]');
+    const originalText = submitBtn.innerHTML;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>登录中...';
+    submitBtn.disabled = true;
+    
     try {
+        console.log('尝试登录:', { username, password });
+        console.log('API地址:', `${API_BASE}/auth/login`);
+        
         const response = await fetch(`${API_BASE}/auth/login`, {
             method: 'POST',
             headers: {
@@ -102,7 +149,17 @@ async function handleLogin(event) {
             body: JSON.stringify({ username, password })
         });
         
+        console.log('响应状态:', response.status);
+        console.log('响应头:', response.headers);
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('响应错误:', errorText);
+            throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+        }
+        
         const data = await response.json();
+        console.log('响应数据:', data);
         
         if (data.success) {
             authToken = data.data.token;
@@ -113,46 +170,165 @@ async function handleLogin(event) {
             showMainInterface();
             showToast('登录成功', 'success');
         } else {
-            showToast(data.message, 'error');
+            showToast(data.message || '登录失败', 'error');
         }
     } catch (error) {
         console.error('登录错误:', error);
         showToast('登录失败，请检查网络连接', 'error');
+    } finally {
+        // 恢复按钮状态
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
     }
 }
 
-// 微信登录
-async function wechatLogin() {
+// 显示微信扫码登录
+function showWechatQR() {
+    const modal = new bootstrap.Modal(document.getElementById('wechatQRModal'));
+    modal.show();
+    
+    // 生成二维码
+    generateWechatQR();
+}
+
+// 生成微信二维码
+async function generateWechatQR() {
     try {
-        // 获取微信配置
-        const configResponse = await fetch(`${API_BASE}/wechat/config`);
-        const config = await configResponse.json();
+        // 重置状态
+        document.getElementById('qrCodeContainer').style.display = 'block';
+        document.getElementById('qrCodeSuccess').style.display = 'none';
+        document.getElementById('qrCodeError').style.display = 'none';
         
-        if (config.success) {
-            // 构建微信授权URL
-            const authUrl = `https://open.weixin.qq.com/connect/oauth2/authorize?appid=${config.data.appId}&redirect_uri=${encodeURIComponent(config.data.redirectUri)}&response_type=code&scope=${config.data.scope}&state=${config.data.state}#wechat_redirect`;
-            
-            // 重定向到微信授权页面
-            window.location.href = authUrl;
+        // 生成随机状态码
+        const state = 'wechat_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        sessionStorage.setItem('wechat_state', state);
+        
+        // 构建微信登录URL
+        const wechatUrl = `https://open.weixin.qq.com/connect/qrconnect?appid=wx1234567890abcdef&redirect_uri=${encodeURIComponent(window.location.origin + '/api/wechat/callback')}&response_type=code&scope=snsapi_login&state=${state}#wechat_redirect`;
+        
+        // 生成二维码
+        const qrCodeContainer = document.getElementById('qrCodeContainer');
+        qrCodeContainer.innerHTML = `
+            <div class="qr-code-wrapper">
+                <div id="qrcode" style="display: flex; justify-content: center; margin: 20px 0;"></div>
+                <p class="mt-3 text-muted">请使用微信扫描上方二维码</p>
+                <div class="progress mt-3" style="height: 4px;">
+                    <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 100%"></div>
+                </div>
+            </div>
+        `;
+        
+        // 使用QRCode.js生成二维码
+        if (typeof QRCode !== 'undefined') {
+            QRCode.toCanvas(document.getElementById('qrcode'), wechatUrl, {
+                width: 200,
+                height: 200,
+                color: {
+                    dark: '#000000',
+                    light: '#ffffff'
+                }
+            }, function (error) {
+                if (error) {
+                    console.error('生成二维码错误:', error);
+                    qrCodeContainer.innerHTML = `
+                        <div class="alert alert-info">
+                            <p>请复制以下链接到微信中打开：</p>
+                            <code>${wechatUrl}</code>
+                        </div>
+                    `;
+                }
+            });
         } else {
-            showToast('微信登录配置错误', 'error');
+            // 如果没有QRCode.js，显示URL
+            qrCodeContainer.innerHTML = `
+                <div class="alert alert-info">
+                    <p>请复制以下链接到微信中打开：</p>
+                    <code>${wechatUrl}</code>
+                </div>
+            `;
         }
+        
+        // 开始轮询检查登录状态
+        startPollingLoginStatus(state);
+        
     } catch (error) {
-        console.error('微信登录错误:', error);
-        showToast('微信登录失败', 'error');
+        console.error('生成二维码错误:', error);
+        document.getElementById('qrCodeError').style.display = 'block';
+        document.getElementById('qrCodeContainer').style.display = 'none';
     }
+}
+
+// 轮询检查登录状态
+function startPollingLoginStatus(state) {
+    const pollInterval = setInterval(async () => {
+        try {
+            const response = await fetch(`${API_BASE}/wechat/check-login?state=${state}`);
+            const data = await response.json();
+            
+            if (data.success && data.loggedIn) {
+                clearInterval(pollInterval);
+                handleWechatLoginSuccess(data.user);
+            }
+        } catch (error) {
+            console.error('检查登录状态错误:', error);
+        }
+    }, 2000); // 每2秒检查一次
+    
+    // 5分钟后停止轮询
+    setTimeout(() => {
+        clearInterval(pollInterval);
+        if (document.getElementById('qrCodeContainer').style.display !== 'none') {
+            document.getElementById('qrCodeError').style.display = 'block';
+            document.getElementById('qrCodeContainer').style.display = 'none';
+        }
+    }, 300000); // 5分钟
+}
+
+// 处理微信登录成功
+function handleWechatLoginSuccess(userData) {
+    document.getElementById('qrCodeContainer').style.display = 'none';
+    document.getElementById('qrCodeSuccess').style.display = 'block';
+    
+    // 模拟登录成功
+    setTimeout(() => {
+        authToken = 'mock-token';
+        currentUser = userData;
+        localStorage.setItem('authToken', authToken);
+        localStorage.setItem('currentUser', JSON.stringify(currentUser));
+        
+        // 关闭模态框
+        bootstrap.Modal.getInstance(document.getElementById('wechatQRModal')).hide();
+        
+        // 显示主界面
+        showMainInterface();
+        showToast('微信登录成功', 'success');
+    }, 1500);
+}
+
+// 刷新二维码
+function refreshQRCode() {
+    generateWechatQR();
 }
 
 // 加载用户信息
 async function loadUserInfo() {
     try {
+        console.log('验证用户信息...');
+        
         const response = await fetch(`${API_BASE}/auth/me`, {
             headers: {
                 'Authorization': `Bearer ${authToken}`
             }
         });
         
+        console.log('用户信息响应状态:', response.status);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
         const data = await response.json();
+        console.log('用户信息响应数据:', data);
         
         if (data.success) {
             currentUser = data.data;
@@ -164,15 +340,24 @@ async function loadUserInfo() {
                 document.getElementById('adminMenu2').style.display = 'block';
             }
             
+            console.log('用户验证成功，显示主界面');
             showMainInterface();
         } else {
+            console.log('用户验证失败，清除本地存储');
             // Token无效，清除本地存储
             localStorage.removeItem('authToken');
             localStorage.removeItem('currentUser');
+            authToken = null;
+            currentUser = null;
             showLoginSection();
         }
     } catch (error) {
         console.error('加载用户信息错误:', error);
+        // 清除本地存储并显示登录页面
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('currentUser');
+        authToken = null;
+        currentUser = null;
         showLoginSection();
     }
 }
@@ -248,7 +433,7 @@ async function loadTrackingProjects() {
                     <td>${project.projectName}</td>
                     <td>${project.customerIdentity}</td>
                     <td>${project.customerCategory}</td>
-                    <td>${project.channel}</td>
+                    <td>${project.channel || '-'}</td>
                     <td>${project.follower.wechatNickname || project.follower.username}</td>
                     <td><span class="priority-${project.priority === '高' ? 'high' : 'low'}">${project.priority}</span></td>
                     <td><span class="status-badge status-${project.status.toLowerCase()}">${project.status}</span></td>
@@ -507,7 +692,7 @@ async function viewProjectDetail(projectId, type) {
                             <tr><td><strong>项目名称:</strong></td><td>${project.projectName}</td></tr>
                             <tr><td><strong>状态:</strong></td><td><span class="status-badge status-${project.status.toLowerCase()}">${project.status}</span></td></tr>
                             <tr><td><strong>优先级:</strong></td><td>${project.priority}</td></tr>
-                            <tr><td><strong>渠道:</strong></td><td>${project.channel}</td></tr>
+                            <tr><td><strong>渠道:</strong></td><td>${project.channel || '-'}</td></tr>
                             <tr><td><strong>跟进人:</strong></td><td>${project.follower.wechatNickname || project.follower.username}</td></tr>
                         </table>
                     </div>
@@ -543,6 +728,46 @@ async function viewProjectDetail(projectId, type) {
                     </div>
                 </div>
                 ` : ''}
+                ${project.followUpRecords && project.followUpRecords.length > 0 ? `
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <h5>跟进记录</h5>
+                        <div class="timeline">
+                            ${project.followUpRecords.map(record => `
+                                <div class="card mb-2">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-start">
+                                            <div class="flex-grow-1">
+                                                <p class="mb-1">${record.content}</p>
+                                            </div>
+                                            <div class="text-muted small">
+                                                <div>${record.formattedDate || new Date(record.date).toLocaleString('zh-CN')}</div>
+                                                <div>${record.updatedBy.username || record.updatedBy}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+                ` : ''}
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <h5>操作</h5>
+                        <div class="btn-group" role="group">
+                            <button type="button" class="btn btn-warning" onclick="editTrackingProject('${projectId}')">
+                                <i class="fas fa-edit me-1"></i>编辑项目
+                            </button>
+                            <button type="button" class="btn btn-info" onclick="addFollowUpRecord('${projectId}')">
+                                <i class="fas fa-plus me-1"></i>添加跟进记录
+                            </button>
+                            <button type="button" class="btn btn-danger" onclick="deleteTrackingProject('${projectId}')">
+                                <i class="fas fa-trash me-1"></i>删除项目
+                            </button>
+                        </div>
+                    </div>
+                </div>
             `;
             
             const modal = new bootstrap.Modal(document.getElementById('projectDetailModal'));
@@ -687,5 +912,142 @@ function logout() {
 function showProfile() {
     if (currentUser) {
         alert(`用户名: ${currentUser.username}\n角色: ${currentUser.role === 'admin' ? '管理员' : '员工'}\n微信昵称: ${currentUser.wechatNickname || '未绑定'}`);
+    }
+}
+
+// 编辑跟进项目
+async function editTrackingProject(projectId) {
+    try {
+        console.log('获取项目详情，ID:', projectId);
+        
+        // 获取项目详情
+        const response = await fetch(`${API_BASE}/tracking/${projectId}`, {
+            headers: {
+                'Authorization': `Bearer ${authToken}`
+            }
+        });
+        
+        console.log('响应状态:', response.status);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        console.log('项目详情数据:', data);
+        
+        if (data.success) {
+            const project = data.data;
+            
+            // 填充编辑表单
+            document.getElementById('editProjectId').value = projectId;
+            document.getElementById('editProjectName').value = project.projectName;
+            document.getElementById('editCustomerIdentity').value = project.customerIdentity;
+            document.getElementById('editCustomerCategory').value = project.customerCategory;
+            document.getElementById('editCustomerBackground').value = project.customerBackground;
+            document.getElementById('editChannel').value = project.channel || '';
+            document.getElementById('editFollower').value = project.follower._id || project.follower.username || project.follower;
+            document.getElementById('editPriority').value = project.priority;
+            document.getElementById('editStatus').value = project.status;
+            document.getElementById('editCustomerWechatName').value = project.customerWechatName || '';
+            document.getElementById('editDetails').value = project.details || '';
+            
+            // 加载用户列表到跟进人下拉框
+            await loadUsersForSelect('editFollower');
+            
+            // 关闭详情模态框
+            const detailModal = bootstrap.Modal.getInstance(document.getElementById('projectDetailModal'));
+            if (detailModal) {
+                detailModal.hide();
+            }
+            
+            // 显示编辑模态框
+            const modal = new bootstrap.Modal(document.getElementById('editTrackingProjectModal'));
+            modal.show();
+        } else {
+            console.error('API返回错误:', data.message);
+            showToast('获取项目详情失败: ' + data.message, 'error');
+        }
+    } catch (error) {
+        console.error('获取项目详情错误:', error);
+        showToast('获取项目详情失败: ' + error.message, 'error');
+    }
+}
+
+// 添加跟进记录
+function addFollowUpRecord(projectId) {
+    // 设置项目ID
+    document.getElementById('followUpProjectId').value = projectId;
+    document.getElementById('followUpContent').value = '';
+    
+    // 关闭详情模态框
+    const detailModal = bootstrap.Modal.getInstance(document.getElementById('projectDetailModal'));
+    if (detailModal) {
+        detailModal.hide();
+    }
+    
+    // 显示添加跟进记录模态框
+    const modal = new bootstrap.Modal(document.getElementById('addFollowUpModal'));
+    modal.show();
+}
+
+// 编辑成交项目
+function editDealProject(projectId) {
+    showToast('编辑成交项目功能开发中...', 'info');
+}
+
+// 删除成交项目
+async function deleteDealProject(projectId) {
+    if (!confirm('确定要删除这个项目吗？')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`${API_BASE}/projects/${projectId}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${authToken}`
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            showToast('项目删除成功', 'success');
+            loadDealProjects();
+        } else {
+            showToast(data.message, 'error');
+        }
+    } catch (error) {
+        console.error('删除成交项目错误:', error);
+        showToast('删除失败', 'error');
+    }
+}
+
+// 删除用户
+async function deleteUser(userId) {
+    if (!confirm('确定要删除这个用户吗？')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`${API_BASE}/users/${userId}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${authToken}`
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            showToast('用户删除成功', 'success');
+            loadUsers();
+        } else {
+            showToast(data.message, 'error');
+        }
+    } catch (error) {
+        console.error('删除用户错误:', error);
+        showToast('删除失败', 'error');
     }
 }
