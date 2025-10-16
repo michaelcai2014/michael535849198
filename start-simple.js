@@ -123,7 +123,7 @@ app.get('/api/tracking', authenticateToken, (req, res) => {
       projects: mockProjects.map(project => ({
         ...project,
         _id: project.id,
-        follower: { username: project.follower, wechatNickname: project.follower }
+        follower: project.follower // 保持原始格式，不重新格式化
       }))
     }
   });
@@ -443,11 +443,7 @@ app.get('/api/tracking/:id', authenticateToken, (req, res) => {
       data: {
         ...project,
         _id: project.id,
-        follower: { 
-          username: project.follower, 
-          wechatNickname: project.follower,
-          _id: project.follower
-        }
+        follower: project.follower // 保持原始格式
       }
     });
   } else {
