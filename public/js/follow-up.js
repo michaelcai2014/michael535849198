@@ -24,10 +24,14 @@ async function saveFollowUpRecord() {
             showToast('跟进记录添加成功', 'success');
             bootstrap.Modal.getInstance(document.getElementById('addFollowUpModal')).hide();
             
-            // 发送微信推送通知管理员
+            // 发送微信推送通知管理员（传递完整项目信息）
             const project = data.data;
             if (typeof notifyFollowUpAdded === 'function' && project) {
-                notifyFollowUpAdded(project.projectName || '项目', content);
+                notifyFollowUpAdded(
+                    project.projectName || '项目', 
+                    content,
+                    project  // 传递完整项目信息
+                );
             }
             
             // 刷新跟进项目列表

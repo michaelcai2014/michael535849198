@@ -304,14 +304,19 @@ app.post('/api/tracking', authenticateToken, (req, res) => {
   
   console.log('创建项目:', newProject.projectName, '跟进人:', newProject.follower.username);
   
+  // 返回完整项目信息，前端可以用来推送
+  const responseData = {
+    ...newProject,
+    _id: newProject.id,
+    follower: newProject.follower
+  };
+  
   res.status(201).json({
     success: true,
     message: '项目创建成功',
-    data: {
-      ...newProject,
-      _id: newProject.id,
-      follower: newProject.follower
-    }
+    data: responseData,
+    // 提供完整项目信息供前端推送使用
+    projectForNotification: responseData
   });
 });
 
@@ -585,28 +590,96 @@ app.use((err, req, res, next) => {
 
 // 微信推送通知API
 app.post('/api/wechat/notify', authenticateToken, (req, res) => {
-  const { type, data } = req.body;
+  const { type, data, project } = req.body;
   
-  console.log('📱 微信推送通知:');
-  console.log('   类型:', type);
-  console.log('   内容:', JSON.stringify(data, null, 2));
+  console.log('\n====================================');
+  console.log('📱 微信公众号推送通知');
+  console.log('====================================');
+  console.log('📋 类型:', type);
+  console.log('⏰ 时间:', new Date().toLocaleString('zh-CN'));
   
   // 查找管理员Michael的微信信息
   const adminUser = mockUsers.find(u => u.username === 'Michael');
+  
   if (adminUser && adminUser.wechatBound) {
-    console.log('📤 推送给管理员Michael:');
+    console.log('\n👤 推送目标:');
+    console.log('   管理员: Michael');
     console.log('   微信昵称:', adminUser.wechatNickname);
-    console.log('   微信OpenID:', adminUser.wechatOpenid);
+    console.log('   OpenID:', adminUser.wechatOpenid);
     
-    // 实际应用中这里会调用微信API发送模板消息给管理员
-    // 现在只是记录日志
+    // 构建完整的推送消息
+    console.log('\n📨 推送内容:');
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    
+    if (type === 'project_created') {
+      console.log('【新项目通知】');
+      console.log('');
+      console.log('项目名称:', data.projectName || '未知');
+      console.log('详情内容:', data.details || '暂无');
+      console.log('操作人员:', data.operator || '未知');
+      
+      // 如果有完整项目信息
+      if (project) {
+        console.log('');
+        console.log('--- 详细信息 ---');
+        console.log('客户身份:', project.customerIdentity || '未填写');
+        console.log('客户类别:', project.customerCategory || '未填写');
+        console.log('客户背景:', project.customerBackground || '未填写');
+        console.log('客户微信:', project.customerWechat || '未填写');
+        console.log('渠道来源:', project.channel || '未填写');
+        console.log('跟进人员:', project.follower?.username || '未知');
+        console.log('优先级别:', project.priority || '未设置');
+        console.log('当前状态:', project.status || '未知');
+      }
+      
+      console.log('');
+      console.log('操作时间:', data.time || new Date().toLocaleString('zh-CN'));
+      
+    } else if (type === 'followup_added') {
+      console.log('【跟进记录更新】');
+      console.log('');
+      console.log('项目名称:', data.projectName || '未知');
+      console.log('跟进内容:', data.content || '暂无');
+      console.log('操作人员:', data.operator || '未知');
+      console.log('更新时间:', data.time || new Date().toLocaleString('zh-CN'));
+      
+      // 如果有完整项目信息
+      if (project) {
+        console.log('');
+        console.log('--- 项目信息 ---');
+        console.log('客户身份:', project.customerIdentity || '未填写');
+        console.log('客户类别:', project.customerCategory || '未填写');
+        console.log('渠道来源:', project.channel || '未填写');
+        console.log('跟进人员:', project.follower?.username || '未知');
+        console.log('当前状态:', project.status || '未知');
+      }
+    }
+    
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.log('');
+    console.log('💡 提示: 实际环境中会通过微信公众号API发送模板消息');
+    console.log('💡 需要配置: AppID, AppSecret, 模板ID');
+    console.log('====================================\n');
+    
+    // 实际应用中这里会调用微信API发送模板消息
+    // 示例代码（需要真实配置）：
+    // const wechatService = require('./services/wechatService');
+    // await wechatService.sendTemplateMessage(adminUser.wechatOpenid, templateId, templateData);
+    
   } else {
-    console.log('⚠️  管理员Michael未绑定微信，无法推送');
+    console.log('\n⚠️  警告: 管理员Michael未绑定微信');
+    console.log('   无法发送推送通知');
+    console.log('====================================\n');
   }
   
   res.json({
     success: true,
-    message: '推送通知已发送'
+    message: '推送通知已发送',
+    debug: {
+      type,
+      recipient: adminUser ? adminUser.username : 'unknown',
+      timestamp: new Date().toISOString()
+    }
   });
 });
 

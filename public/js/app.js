@@ -744,9 +744,14 @@ async function saveTrackingProject() {
             bootstrap.Modal.getInstance(document.getElementById('addTrackingProjectModal')).hide();
             document.getElementById('addTrackingProjectForm').reset();
             
-            // 发送微信推送通知管理员
+            // 发送微信推送通知管理员（传递完整项目信息）
             if (typeof notifyProjectCreated === 'function') {
-                notifyProjectCreated(formData.projectName, formData.details || '新项目创建');
+                const projectInfo = data.projectForNotification || data.data;
+                notifyProjectCreated(
+                    formData.projectName, 
+                    formData.details || '新项目创建',
+                    projectInfo  // 传递完整项目信息
+                );
             }
             
             // 刷新项目列表和仪表盘
