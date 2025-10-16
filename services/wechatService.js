@@ -1,9 +1,10 @@
-// 微信公众号服务模块
-const WechatAPI = require('co-wechat-api');
+// 微信公众号服务模块（Node.js v8 兼容版本）
+const https = require('https');
 
-// 微信API实例（使用配置中的AppID和AppSecret）
-let api = null;
+// 当前配置和AccessToken
 let currentConfig = null;
+let accessToken = null;
+let tokenExpireTime = 0;
 
 // 初始化微信API
 function initWechatAPI(config) {
@@ -12,22 +13,90 @@ function initWechatAPI(config) {
     return false;
   }
   
+  currentConfig = config;
+  console.log('✅ 微信API配置已更新');
+  console.log('   AppID:', config.appId);
+  
+  // 清空旧的AccessToken
+  accessToken = null;
+  tokenExpireTime = 0;
+  
+  return true;
+}
+
+// HTTP请求封装
+function httpsRequest(options, postData) {
+  return new Promise((resolve, reject) => {
+    const req = https.request(options, (res) => {
+      let data = '';
+      
+      res.on('data', (chunk) => {
+        data += chunk;
+      });
+      
+      res.on('end', () => {
+        try {
+          const result = JSON.parse(data);
+          resolve(result);
+        } catch (e) {
+          reject(new Error('解析响应失败: ' + data));
+        }
+      });
+    });
+    
+    req.on('error', (e) => {
+      reject(e);
+    });
+    
+    if (postData) {
+      req.write(postData);
+    }
+    
+    req.end();
+  });
+}
+
+// 获取Access Token
+async function getAccessToken() {
+  if (!currentConfig || !currentConfig.appId || !currentConfig.appSecret) {
+    throw new Error('未配置AppID和AppSecret');
+  }
+  
+  // 如果token还有效，直接返回
+  if (accessToken && Date.now() < tokenExpireTime) {
+    return accessToken;
+  }
+  
+  // 请求新的AccessToken
+  const options = {
+    hostname: 'api.weixin.qq.com',
+    port: 443,
+    path: `/cgi-bin/token?grant_type=client_credential&appid=${currentConfig.appId}&secret=${currentConfig.appSecret}`,
+    method: 'GET'
+  };
+  
   try {
-    api = new WechatAPI(config.appId, config.appSecret);
-    currentConfig = config;
-    console.log('✅ 微信API初始化成功');
-    console.log('   AppID:', config.appId);
-    return true;
+    const result = await httpsRequest(options);
+    
+    if (result.access_token) {
+      accessToken = result.access_token;
+      // 提前5分钟过期
+      tokenExpireTime = Date.now() + (result.expires_in - 300) * 1000;
+      console.log('✅ AccessToken获取成功');
+      return accessToken;
+    } else {
+      throw new Error(result.errmsg || '获取AccessToken失败');
+    }
   } catch (error) {
-    console.error('❌ 微信API初始化失败:', error.message);
-    return false;
+    console.error('❌ 获取AccessToken失败:', error.message);
+    throw error;
   }
 }
 
 // 发送模板消息
 async function sendTemplateMessage(openid, templateData) {
   // 如果未初始化或未启用推送，返回模拟成功
-  if (!api || !currentConfig || !currentConfig.enablePush) {
+  if (!currentConfig || !currentConfig.enablePush) {
     console.log('💡 微信推送未启用，跳过发送');
     return {
       success: true,
@@ -46,35 +115,67 @@ async function sendTemplateMessage(openid, templateData) {
   }
   
   try {
-    // 调用微信API发送模板消息
-    const result = await api.sendTemplate(openid, currentConfig.templateId, '', templateData);
+    // 获取AccessToken
+    const token = await getAccessToken();
     
-    console.log('✅ 模板消息发送成功');
-    console.log('   MsgID:', result.msgid);
+    // 构建请求
+    const postData = JSON.stringify({
+      touser: openid,
+      template_id: currentConfig.templateId,
+      data: templateData
+    });
     
-    return {
-      success: true,
-      msgid: result.msgid,
-      message: '推送成功'
+    const options = {
+      hostname: 'api.weixin.qq.com',
+      port: 443,
+      path: `/cgi-bin/message/template/send?access_token=${token}`,
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(postData)
+      }
     };
     
-  } catch (error) {
-    console.error('❌ 模板消息发送失败:', error.message);
+    const result = await httpsRequest(options, postData);
     
-    // 返回友好的错误信息
-    let errorMessage = '推送失败';
-    if (error.message.includes('access_token')) {
-      errorMessage = 'AccessToken无效，请检查AppID和AppSecret';
-    } else if (error.message.includes('template')) {
-      errorMessage = '模板ID无效或未配置';
-    } else if (error.message.includes('openid')) {
-      errorMessage = 'OpenID无效或用户未关注公众号';
+    if (result.errcode === 0) {
+      console.log('✅ 模板消息发送成功');
+      console.log('   MsgID:', result.msgid);
+      
+      return {
+        success: true,
+        msgid: result.msgid,
+        message: '推送成功'
+      };
+    } else {
+      console.error('❌ 模板消息发送失败:', result.errmsg);
+      
+      // 返回友好的错误信息
+      let errorMessage = '推送失败';
+      if (result.errcode === 40001) {
+        errorMessage = 'AppSecret错误或AccessToken无效';
+      } else if (result.errcode === 40003) {
+        errorMessage = 'OpenID无效';
+      } else if (result.errcode === 43004) {
+        errorMessage = '用户未关注公众号';
+      } else if (result.errcode === 47001) {
+        errorMessage = '模板ID无效';
+      } else {
+        errorMessage = result.errmsg || '推送失败';
+      }
+      
+      return {
+        success: false,
+        message: errorMessage,
+        errcode: result.errcode
+      };
     }
     
+  } catch (error) {
+    console.error('❌ 发送模板消息异常:', error.message);
     return {
       success: false,
-      message: errorMessage,
-      error: error.message
+      message: error.message
     };
   }
 }
@@ -152,7 +253,7 @@ function getCurrentConfig() {
 
 // 测试连接
 async function testConnection() {
-  if (!api) {
+  if (!currentConfig) {
     return {
       success: false,
       message: '微信API未初始化'
@@ -161,19 +262,18 @@ async function testConnection() {
   
   try {
     // 尝试获取AccessToken来测试连接
-    const token = await api.ensureAccessToken();
+    const token = await getAccessToken();
     
     return {
       success: true,
-      message: '连接测试成功',
-      accessToken: token.accessToken ? '已获取' : '未获取'
+      message: '连接测试成功，AccessToken获取正常',
+      accessToken: token ? '已获取' : '未获取'
     };
     
   } catch (error) {
     return {
       success: false,
-      message: '连接测试失败',
-      error: error.message
+      message: '连接测试失败: ' + error.message
     };
   }
 }
@@ -186,4 +286,3 @@ module.exports = {
   getCurrentConfig,
   testConnection
 };
-
