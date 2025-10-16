@@ -2,9 +2,42 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const multer = require('multer');
+const fs = require('fs');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// 配置文件上传
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    const uploadDir = path.join(__dirname, 'public', 'images');
+    // 确保目录存在
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    cb(null, uploadDir);
+  },
+  filename: function (req, file, cb) {
+    // 固定文件名为 wechat-qrcode.jpg
+    const ext = path.extname(file.originalname).toLowerCase();
+    cb(null, 'wechat-qrcode' + ext);
+  }
+});
+
+const upload = multer({
+  storage: storage,
+  limits: {
+    fileSize: 5 * 1024 * 1024 // 限制5MB
+  },
+  fileFilter: function (req, file, cb) {
+    // 只允许图片
+    if (!file.mimetype.match(/^image\/(jpeg|jpg|png|gif)$/)) {
+      return cb(new Error('只允许上传图片文件（JPG、PNG、GIF）'));
+    }
+    cb(null, true);
+  }
+});
 
 // 中间件
 app.use(cors({
@@ -887,6 +920,39 @@ app.get('/api/wechat/test', authenticateToken, (req, res) => {
   res.json({
     success: true,
     message: '连接测试成功！（模拟）'
+  });
+});
+
+// 上传公众号二维码
+app.post('/api/wechat/upload-qrcode', authenticateToken, upload.single('qrcode'), (req, res) => {
+  // 检查权限
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({
+      success: false,
+      message: '只有管理员可以上传二维码'
+    });
+  }
+  
+  if (!req.file) {
+    return res.status(400).json({
+      success: false,
+      message: '请选择要上传的图片'
+    });
+  }
+  
+  console.log('📸 公众号二维码已上传');
+  console.log('   文件名:', req.file.filename);
+  console.log('   大小:', (req.file.size / 1024).toFixed(2), 'KB');
+  console.log('   路径:', req.file.path);
+  
+  res.json({
+    success: true,
+    message: '二维码上传成功',
+    data: {
+      filename: req.file.filename,
+      path: '/images/' + req.file.filename,
+      size: req.file.size
+    }
   });
 });
 

@@ -392,13 +392,26 @@
                             <h5 class="mb-0">公众号二维码</h5>
                         </div>
                         <div class="card-body text-center">
-                            <img src="/images/wechat-qrcode.jpg" alt="公众号二维码" style="max-width: 200px; width: 100%; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-                            <p class="small text-muted mt-3">
-                                <i class="fab fa-weixin text-success me-1"></i>
-                                扫码关注公众号
-                            </p>
+                            <div id="qrcodePreview" class="mb-3">
+                                <img id="qrcodeImage" src="/images/wechat-qrcode.jpg" alt="公众号二维码" 
+                                     style="max-width: 200px; width: 100%; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"
+                                     onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22200%22 height=%22200%22%3E%3Crect fill=%22%23f0f0f0%22 width=%22200%22 height=%22200%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 font-family=%22Arial%22 font-size=%2214%22 fill=%22%23999%22%3E未上传二维码%3C/text%3E%3C/svg%3E'">
+                            </div>
+                            <div class="mb-3">
+                                <input type="file" class="form-control form-control-sm" id="qrcodeFile" accept="image/*" style="display:none;" onchange="previewQRCode(this)">
+                                <button class="btn btn-sm btn-primary" onclick="document.getElementById('qrcodeFile').click()">
+                                    <i class="fas fa-upload me-1"></i>上传二维码
+                                </button>
+                                <button class="btn btn-sm btn-success ms-2" onclick="uploadQRCode()" id="uploadQRBtn" style="display:none;">
+                                    <i class="fas fa-check me-1"></i>确认上传
+                                </button>
+                            </div>
                             <p class="small text-muted">
-                                员工关注后即可接收项目通知
+                                <i class="fab fa-weixin text-success me-1"></i>
+                                员工扫码关注后接收项目通知
+                            </p>
+                            <p class="small text-muted mb-0">
+                                支持 JPG、PNG 格式，建议 500x500 像素
                             </p>
                         </div>
                     </div>

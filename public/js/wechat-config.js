@@ -230,3 +230,121 @@ function refreshUserBindQR(userId) {
     showToast('已使用固定公众号二维码', 'info');
 }
 
+// ==================== 二维码上传功能 ====================
+
+let selectedQRCodeFile = null;
+
+// 预览二维码
+function previewQRCode(input) {
+    if (input.files && input.files[0]) {
+        const file = input.files[0];
+        
+        // 验证文件类型
+        if (!file.type.match('image.*')) {
+            showToast('请选择图片文件', 'error');
+            return;
+        }
+        
+        // 验证文件大小（限制为5MB）
+        if (file.size > 5 * 1024 * 1024) {
+            showToast('图片大小不能超过5MB', 'error');
+            return;
+        }
+        
+        selectedQRCodeFile = file;
+        
+        // 预览图片
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const img = document.getElementById('qrcodeImage');
+            if (img) {
+                img.src = e.target.result;
+            }
+        };
+        reader.readAsDataURL(file);
+        
+        // 显示确认上传按钮
+        const uploadBtn = document.getElementById('uploadQRBtn');
+        if (uploadBtn) {
+            uploadBtn.style.display = 'inline-block';
+        }
+        
+        showToast('图片已选择，点击"确认上传"完成上传', 'info');
+    }
+}
+
+// 上传二维码到服务器
+async function uploadQRCode() {
+    if (!selectedQRCodeFile) {
+        showToast('请先选择图片文件', 'error');
+        return;
+    }
+    
+    try {
+        const uploadBtn = document.getElementById('uploadQRBtn');
+        if (uploadBtn) {
+            uploadBtn.disabled = true;
+            uploadBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>上传中...';
+        }
+        
+        // 创建 FormData
+        const formData = new FormData();
+        formData.append('qrcode', selectedQRCodeFile);
+        
+        // 上传文件
+        const response = await fetch(`${API_BASE}/wechat/upload-qrcode`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${authToken}`
+            },
+            body: formData
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            showToast('二维码上传成功！', 'success');
+            
+            // 重置按钮
+            if (uploadBtn) {
+                uploadBtn.style.display = 'none';
+                uploadBtn.disabled = false;
+                uploadBtn.innerHTML = '<i class="fas fa-check me-1"></i>确认上传';
+            }
+            
+            // 清空文件选择
+            const fileInput = document.getElementById('qrcodeFile');
+            if (fileInput) {
+                fileInput.value = '';
+            }
+            selectedQRCodeFile = null;
+            
+            // 刷新图片（添加时间戳防止缓存）
+            const img = document.getElementById('qrcodeImage');
+            if (img) {
+                img.src = `/images/wechat-qrcode.jpg?t=${Date.now()}`;
+            }
+            
+        } else {
+            showToast(data.message || '上传失败', 'error');
+            
+            // 重置按钮
+            if (uploadBtn) {
+                uploadBtn.disabled = false;
+                uploadBtn.innerHTML = '<i class="fas fa-check me-1"></i>确认上传';
+            }
+        }
+        
+    } catch (error) {
+        console.error('上传二维码错误:', error);
+        showToast('上传失败，请重试', 'error');
+        
+        // 重置按钮
+        const uploadBtn = document.getElementById('uploadQRBtn');
+        if (uploadBtn) {
+            uploadBtn.disabled = false;
+            uploadBtn.innerHTML = '<i class="fas fa-check me-1"></i>确认上传';
+        }
+    }
+}
+
