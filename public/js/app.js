@@ -415,6 +415,8 @@ async function loadUserInfo() {
 // 加载仪表板数据
 async function loadDashboard() {
     try {
+        const isAdmin = currentUser && (currentUser.role === 'admin' || currentUser.username === 'Michael');
+        
         // 加载跟进项目统计
         const trackingResponse = await fetch(`${API_BASE}/tracking?limit=1000`, {
             headers: {
@@ -424,7 +426,26 @@ async function loadDashboard() {
         const trackingData = await trackingResponse.json();
         
         if (trackingData.success) {
-            const trackingProjects = trackingData.data.projects;
+            let trackingProjects = trackingData.data.projects;
+            
+            // 员工只看自己的项目
+            if (!isAdmin) {
+                trackingProjects = trackingProjects.filter(p => {
+                    let followerUsername;
+                    let followerId;
+                    if (typeof p.follower === 'object' && p.follower !== null) {
+                        followerUsername = p.follower.username;
+                        followerId = p.follower._id || p.follower.id;
+                    } else {
+                        followerUsername = p.follower;
+                        followerId = p.follower;
+                    }
+                    return followerUsername === currentUser.username || 
+                           followerId === currentUser.id ||
+                           followerUsername === currentUser.id;
+                });
+            }
+            
             document.getElementById('totalTrackingProjects').textContent = trackingProjects.length;
             
             const highPriorityCount = trackingProjects.filter(p => p.priority === '高').length;
@@ -440,7 +461,26 @@ async function loadDashboard() {
         const dealsData = await dealsResponse.json();
         
         if (dealsData.success) {
-            const dealProjects = dealsData.data.projects;
+            let dealProjects = dealsData.data.projects;
+            
+            // 员工只看自己的项目
+            if (!isAdmin) {
+                dealProjects = dealProjects.filter(p => {
+                    let followerUsername;
+                    let followerId;
+                    if (typeof p.follower === 'object' && p.follower !== null) {
+                        followerUsername = p.follower.username;
+                        followerId = p.follower._id || p.follower.id;
+                    } else {
+                        followerUsername = p.follower;
+                        followerId = p.follower;
+                    }
+                    return followerUsername === currentUser.username || 
+                           followerId === currentUser.id ||
+                           followerUsername === currentUser.id;
+                });
+            }
+            
             document.getElementById('totalDealProjects').textContent = dealProjects.length;
         }
         
@@ -484,19 +524,27 @@ async function loadTrackingProjects() {
             console.log('所有项目数量:', data.data.projects.length);
             
             const projects = isAdmin ? data.data.projects : data.data.projects.filter(p => {
-                // 获取跟进人用户名
+                // 获取跟进人用户名和ID
                 let followerUsername;
+                let followerId;
                 if (typeof p.follower === 'object' && p.follower !== null) {
-                    followerUsername = p.follower.username || p.follower._id;
+                    followerUsername = p.follower.username;
+                    followerId = p.follower._id || p.follower.id;
                 } else {
                     followerUsername = p.follower;
+                    followerId = p.follower;
                 }
                 
                 const isMatch = followerUsername === currentUser.username || 
-                                followerUsername === currentUser.id ||
-                                (p.follower && p.follower._id === currentUser.id);
+                                followerId === currentUser.id ||
+                                followerUsername === currentUser.id;
                 
-                console.log('项目:', p.projectName, '跟进人:', followerUsername, '当前用户:', currentUser.username, '匹配:', isMatch);
+                console.log('项目:', p.projectName);
+                console.log('  跟进人username:', followerUsername);
+                console.log('  跟进人ID:', followerId);
+                console.log('  当前用户username:', currentUser.username);
+                console.log('  当前用户ID:', currentUser.id);
+                console.log('  匹配结果:', isMatch);
                 
                 return isMatch;
             });
@@ -562,19 +610,27 @@ async function loadDealProjects() {
             console.log('成交项目 - 所有项目数量:', data.data.projects.length);
             
             const projects = isAdmin ? data.data.projects : data.data.projects.filter(p => {
-                // 获取跟进人用户名
+                // 获取跟进人用户名和ID
                 let followerUsername;
+                let followerId;
                 if (typeof p.follower === 'object' && p.follower !== null) {
-                    followerUsername = p.follower.username || p.follower._id;
+                    followerUsername = p.follower.username;
+                    followerId = p.follower._id || p.follower.id;
                 } else {
                     followerUsername = p.follower;
+                    followerId = p.follower;
                 }
                 
                 const isMatch = followerUsername === currentUser.username || 
-                               followerUsername === currentUser.id ||
-                               (p.follower && p.follower._id === currentUser.id);
+                               followerId === currentUser.id ||
+                               followerUsername === currentUser.id;
                 
-                console.log('成交项目:', p.projectName, '跟进人:', followerUsername, '当前用户:', currentUser.username, '匹配:', isMatch);
+                console.log('成交项目:', p.projectName);
+                console.log('  跟进人username:', followerUsername);
+                console.log('  跟进人ID:', followerId);
+                console.log('  当前用户username:', currentUser.username);
+                console.log('  当前用户ID:', currentUser.id);
+                console.log('  匹配结果:', isMatch);
                 
                 return isMatch;
             });

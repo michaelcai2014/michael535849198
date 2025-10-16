@@ -627,7 +627,7 @@ app.post('/api/wechat/notify', authenticateToken, (req, res) => {
         console.log('客户背景:', project.customerBackground || '未填写');
         console.log('客户微信:', project.customerWechat || '未填写');
         console.log('渠道来源:', project.channel || '未填写');
-        console.log('跟进人员:', project.follower?.username || '未知');
+        console.log('跟进人员:', (project.follower && project.follower.username) || '未知');
         console.log('优先级别:', project.priority || '未设置');
         console.log('当前状态:', project.status || '未知');
       }
@@ -650,7 +650,7 @@ app.post('/api/wechat/notify', authenticateToken, (req, res) => {
         console.log('客户身份:', project.customerIdentity || '未填写');
         console.log('客户类别:', project.customerCategory || '未填写');
         console.log('渠道来源:', project.channel || '未填写');
-        console.log('跟进人员:', project.follower?.username || '未知');
+        console.log('跟进人员:', (project.follower && project.follower.username) || '未知');
         console.log('当前状态:', project.status || '未知');
       }
     }
