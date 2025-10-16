@@ -923,7 +923,7 @@ async function viewProjectDetail(projectId, type) {
                                             </div>
                                             <div class="text-muted small">
                                                 <div>${record.formattedDate || new Date(record.date).toLocaleString('zh-CN')}</div>
-                                                <div>${record.updatedBy.username || record.updatedBy}</div>
+                                                <div>${typeof record.updatedBy === 'object' ? (record.updatedBy.wechatNickname || record.updatedBy.username) : record.updatedBy}</div>
                                             </div>
                                         </div>
                                     </div>
