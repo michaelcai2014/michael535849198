@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tunda项目管理系统</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="css/style.css" rel="stylesheet">
+</head>
+<body>
+    <!-- 导航栏 -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-project-diagram me-2"></i>
+                Tunda项目管理
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" onclick="showSection('dashboard')">
+                            <i class="fas fa-tachometer-alt me-1"></i>仪表板
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" onclick="showSection('tracking')">
+                            <i class="fas fa-search me-1"></i>跟进中项目
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" onclick="showSection('deals')">
+                            <i class="fas fa-handshake me-1"></i>已成交项目
+                        </a>
+                    </li>
+                    <li class="nav-item" id="adminMenu" style="display: none;">
+                        <a class="nav-link" href="#" onclick="showSection('users')">
+                            <i class="fas fa-users me-1"></i>用户管理
+                        </a>
+                    </li>
+                    <li class="nav-item" id="adminMenu2" style="display: none;">
+                        <a class="nav-link" href="#" onclick="showSection('logs')">
+                            <i class="fas fa-history me-1"></i>操作日志
+                        </a>
+                    </li>
+                </ul>
+                <ul class="navbar-nav">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-user me-1"></i>
+                            <span id="userName">用户</span>
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="#" onclick="showProfile()">个人资料</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="#" onclick="logout()">退出登录</a></li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主要内容区域 -->
+    <div class="container-fluid mt-4">
+        <!-- 登录页面 -->
+        <div id="loginSection" class="row justify-content-center">
+            <div class="col-md-6 col-lg-4">
+                <div class="card">
+                    <div class="card-header text-center">
+                        <h4><i class="fas fa-sign-in-alt me-2"></i>用户登录</h4>
+                    </div>
+                    <div class="card-body">
+                        <form id="loginForm">
+                            <div class="mb-3">
+                                <label for="username" class="form-label">用户名</label>
+                                <input type="text" class="form-control" id="username" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="password" class="form-label">密码</label>
+                                <input type="password" class="form-control" id="password" required>
+                            </div>
+                            <div class="mb-3 form-check">
+                                <input type="checkbox" class="form-check-input" id="rememberMe">
+                                <label class="form-check-label" for="rememberMe">记住我</label>
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="fas fa-sign-in-alt me-2"></i>登录
+                            </button>
+                        </form>
+                        <hr>
+                        <div class="text-center">
+                            <button type="button" class="btn btn-success" onclick="wechatLogin()">
+                                <i class="fab fa-weixin me-2"></i>微信登录
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 仪表板 -->
+        <div id="dashboardSection" class="section" style="display: none;">
+            <div class="row">
+                <div class="col-12">
+                    <h2><i class="fas fa-tachometer-alt me-2"></i>仪表板</h2>
+                </div>
+            </div>
+            <div class="row mt-4">
+                <div class="col-md-3">
+                    <div class="card bg-primary text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h4 id="totalTrackingProjects">0</h4>
+                                    <p class="mb-0">跟进中项目</p>
+                                </div>
+                                <div class="align-self-center">
+                                    <i class="fas fa-search fa-2x"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-success text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h4 id="totalDealProjects">0</h4>
+                                    <p class="mb-0">已成交项目</p>
+                                </div>
+                                <div class="align-self-center">
+                                    <i class="fas fa-handshake fa-2x"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-warning text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h4 id="highPriorityProjects">0</h4>
+                                    <p class="mb-0">高优先级项目</p>
+                                </div>
+                                <div class="align-self-center">
+                                    <i class="fas fa-exclamation-triangle fa-2x"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-info text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h4 id="totalUsers">0</h4>
+                                    <p class="mb-0">系统用户</p>
+                                </div>
+                                <div class="align-self-center">
+                                    <i class="fas fa-users fa-2x"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 跟进中项目 -->
+        <div id="trackingSection" class="section" style="display: none;">
+            <div class="row">
+                <div class="col-12">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h2><i class="fas fa-search me-2"></i>跟进中项目</h2>
+                        <button class="btn btn-primary" onclick="showAddTrackingProjectModal()">
+                            <i class="fas fa-plus me-2"></i>新增项目
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover" id="trackingProjectsTable">
+                                    <thead>
+                                        <tr>
+                                            <th>项目名称</th>
+                                            <th>客户身份</th>
+                                            <th>客户类别</th>
+                                            <th>渠道</th>
+                                            <th>跟进人</th>
+                                            <th>优先级</th>
+                                            <th>状态</th>
+                                            <th>最后更新</th>
+                                            <th>操作</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <!-- 数据将通过JavaScript动态加载 -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 已成交项目 -->
+        <div id="dealsSection" class="section" style="display: none;">
+            <div class="row">
+                <div class="col-12">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h2><i class="fas fa-handshake me-2"></i>已成交项目</h2>
+                        <button class="btn btn-primary" onclick="showAddDealProjectModal()">
+                            <i class="fas fa-plus me-2"></i>新增项目
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover" id="dealProjectsTable">
+                                    <thead>
+                                        <tr>
+                                            <th>项目名称</th>
+                                            <th>成交时间</th>
+                                            <th>渠道</th>
+                                            <th>跟进人</th>
+                                            <th>状态</th>
+                                            <th>最后更新</th>
+                                            <th>操作</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <!-- 数据将通过JavaScript动态加载 -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 用户管理（管理员） -->
+        <div id="usersSection" class="section" style="display: none;">
+            <div class="row">
+                <div class="col-12">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h2><i class="fas fa-users me-2"></i>用户管理</h2>
+                        <button class="btn btn-primary" onclick="showAddUserModal()">
+                            <i class="fas fa-plus me-2"></i>新增用户
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover" id="usersTable">
+                                    <thead>
+                                        <tr>
+                                            <th>用户名</th>
+                                            <th>角色</th>
+                                            <th>微信昵称</th>
+                                            <th>最后登录</th>
+                                            <th>状态</th>
+                                            <th>创建时间</th>
+                                            <th>操作</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <!-- 数据将通过JavaScript动态加载 -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 操作日志（管理员） -->
+        <div id="logsSection" class="section" style="display: none;">
+            <div class="row">
+                <div class="col-12">
+                    <h2><i class="fas fa-history me-2"></i>操作日志</h2>
+                </div>
+            </div>
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover" id="logsTable">
+                                    <thead>
+                                        <tr>
+                                            <th>时间</th>
+                                            <th>操作者</th>
+                                            <th>操作类型</th>
+                                            <th>实体类型</th>
+                                            <th>描述</th>
+                                            <th>IP地址</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <!-- 数据将通过JavaScript动态加载 -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 模态框 -->
+    <!-- 新增跟进项目模态框 -->
+    <div class="modal fade" id="addTrackingProjectModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">新增跟进项目</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addTrackingProjectForm">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="projectName" class="form-label">项目名称 *</label>
+                                    <input type="text" class="form-control" id="projectName" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="customerIdentity" class="form-label">客户身份 *</label>
+                                    <select class="form-select" id="customerIdentity" required>
+                                        <option value="">请选择</option>
+                                        <option value="国内个人">国内个人</option>
+                                        <option value="国外个人">国外个人</option>
+                                        <option value="老板">老板</option>
+                                        <option value="项目负责人">项目负责人</option>
+                                        <option value="项目执行">项目执行</option>
+                                        <option value="中介">中介</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="customerCategory" class="form-label">客户类别 *</label>
+                                    <select class="form-select" id="customerCategory" required>
+                                        <option value="">请选择</option>
+                                        <option value="嫖客">嫖客</option>
+                                        <option value="潜客">潜客</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="customerBackground" class="form-label">客户背景 *</label>
+                                    <select class="form-select" id="customerBackground" required>
+                                        <option value="">请选择</option>
+                                        <option value="初创企业">初创企业</option>
+                                        <option value="个人">个人</option>
+                                        <option value="广告公司">广告公司</option>
+                                        <option value="海外">海外</option>
+                                        <option value="民企传统行业">民企传统行业</option>
+                                        <option value="民企互联网">民企互联网</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="channel" class="form-label">渠道 *</label>
+                                    <select class="form-select" id="channel" required>
+                                        <option value="">请选择</option>
+                                        <option value="蔡宗林">蔡宗林</option>
+                                        <option value="Michael">Michael</option>
+                                        <option value="视频号">视频号</option>
+                                        <option value="抖音">抖音</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="follower" class="form-label">跟进人 *</label>
+                                    <select class="form-select" id="follower" required>
+                                        <option value="">请选择</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="priority" class="form-label">优先级</label>
+                                    <select class="form-select" id="priority">
+                                        <option value="低">低</option>
+                                        <option value="高">高</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="status" class="form-label">状态</label>
+                                    <select class="form-select" id="status">
+                                        <option value="WIP">WIP</option>
+                                        <option value="Pending">Pending</option>
+                                        <option value="Close">Close</option>
+                                        <option value="Deal">Deal</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="customerWechatName" class="form-label">客户微信名</label>
+                            <input type="text" class="form-control" id="customerWechatName">
+                        </div>
+                        <div class="mb-3">
+                            <label for="details" class="form-label">详情</label>
+                            <textarea class="form-control" id="details" rows="4" maxlength="10000"></textarea>
+                            <div class="form-text">最多10000字</div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" onclick="saveTrackingProject()">保存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 项目详情模态框 -->
+    <div class="modal fade" id="projectDetailModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">项目详情</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="projectDetailContent">
+                        <!-- 内容将通过JavaScript动态加载 -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 加载脚本 -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
