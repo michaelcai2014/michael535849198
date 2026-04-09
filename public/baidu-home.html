@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>百度一下，你就知道</title>
+    <link rel="stylesheet" href="css/baidu-home.css">
+</head>
+<body>
+    <header class="top-nav">
+        <nav>
+            <a href="#">新闻</a>
+            <a href="#">hao123</a>
+            <a href="#">地图</a>
+            <a href="#">视频</a>
+            <a href="#">贴吧</a>
+            <a href="#">学术</a>
+            <a href="#">更多</a>
+            <a href="#" class="login-btn">登录</a>
+        </nav>
+    </header>
+
+    <main class="main-content">
+        <section class="logo-wrap" aria-label="Baidu logo">
+            <div class="logo">
+                <span class="logo-b">百</span>
+                <span class="logo-d">度</span>
+            </div>
+            <p class="slogan">百度一下，你就知道</p>
+        </section>
+
+        <form class="search-wrap" id="searchForm">
+            <label class="sr-only" for="searchInput">搜索关键词</label>
+            <input
+                id="searchInput"
+                name="wd"
+                type="text"
+                placeholder="请输入搜索关键词"
+                autocomplete="off"
+            >
+            <button type="submit">百度一下</button>
+        </form>
+    </main>
+
+    <footer class="site-footer">
+        <div class="footer-links">
+            <a href="#">设为首页</a>
+            <a href="#">关于百度</a>
+            <a href="#">About Baidu</a>
+            <a href="#">百度推广</a>
+            <a href="#">使用百度前必读</a>
+            <a href="#">帮助中心</a>
+        </div>
+        <p>©2026 Baidu (示例页面)</p>
+    </footer>
+
+    <script>
+        const searchForm = document.getElementById('searchForm');
+        const searchInput = document.getElementById('searchInput');
+
+        searchForm.addEventListener('submit', function (event) {
+            event.preventDefault();
+            const keyword = searchInput.value.trim();
+            if (!keyword) {
+                searchInput.focus();
+                return;
+            }
+
+            const target = `https://www.baidu.com/s?wd=${encodeURIComponent(keyword)}`;
+            window.open(target, '_blank', 'noopener');
+        });
+    </script>
+</body>
+</html>
